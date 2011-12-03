@@ -18,27 +18,25 @@ module Web.Stripe.Client
     , StdMethod(..)
     ) where
 
-import Control.Monad                     ( MonadPlus, liftM )
-import Control.Monad.Error               ( Error, ErrorT, MonadIO, MonadError
-                                         , runErrorT , throwError
-                                         , strMsg, noMsg
-                                         )
-import Control.Monad.State               ( MonadState, StateT, runStateT, get )
-import Control.Monad.Trans               ( liftIO )
-import Data.Char                         ( toLower )
-import Data.List                         ( intercalate )
-import Data.Text                         ( Text )
-import Network.Curl                      ( CurlOption(..), CurlResponse
-                                         , CurlResponse_(..), curlGetResponse_
-                                         , method_GET, method_HEAD, method_POST
-                                         )
-import Network.HTTP.Types                ( StdMethod(..) )
-import Network.URI                       ( URI(..), URIAuth(..) )
-import Text.JSON                         ( Result(..), JSObject, JSON(..)
-                                         , JSValue(..), decode, resultToEither
-                                         , toJSObject, valFromObj
-                                         )
-import Web.Stripe.Utils                  ( jGet, mjGet )
+import Control.Monad        ( MonadPlus, liftM )
+import Control.Monad.Error  ( Error, ErrorT, MonadIO, MonadError, runErrorT
+                            , throwError, strMsg, noMsg
+                            )
+import Control.Monad.State  ( MonadState, StateT, runStateT, get )
+import Control.Monad.Trans  ( liftIO )
+import Data.Char            ( toLower )
+import Data.List            ( intercalate )
+import Data.Text            ( Text )
+import Network.Curl         ( CurlOption(..), CurlResponse, CurlResponse_(..)
+                            , curlGetResponse_, method_GET, method_HEAD
+                            , method_POST
+                            )
+import Network.HTTP.Types   ( StdMethod(..) )
+import Network.URI          ( URI(..), URIAuth(..) )
+import Text.JSON            ( Result(..), JSObject, JSON(..), JSValue(..)
+                            , decode, resultToEither, toJSObject, valFromObj
+                            )
+import Web.Stripe.Utils     ( jGet, mjGet )
 
 import qualified Data.Text as T
 
