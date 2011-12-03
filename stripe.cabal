@@ -18,6 +18,7 @@ Library
     ghc-options:        -Wall -fwarn-tabs
     Hs-Source-Dirs:     src
     Exposed-modules:      Web.Stripe.Client
+                        , Web.Stripe.Utils
     Build-depends:        base          >= 3 && < 5
                         , text          == 0.11.*
                         , json          >= 0.3.6
