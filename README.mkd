@@ -1,0 +1,28 @@
+Created by [Michael Schade](http://mschade.me/)
+([@michaelschade](https://twitter.com/intent/user?screen_name=michaelschade)).
+
+Description
+===========
+
+This is an *unofficial* Haskell implementation of the [Stripe API][sapi].
+
+Help
+====
+
+First, consult the Haddock and [Stripe API][sapi] docs to be certain you're
+using the API correctly. It's a good idea to
+[try another library](https://stripe.com/docs/libraries) first to see if it
+works there. If you think you might be misunderstanding the API, or having an
+issue with Stripe itself, it's best to
+[contact them](https://stripe.com/help/contact).
+
+If all of that fails, or if you otherwise think it's an issue with this
+implementation of the API, please submit an issue here. Better yet, submit
+a pull request with a proposed solution!
+
+License
+=======
+
+I like the MIT license. See `LICENSE`.
+
+[sapi]: https://stripe.com/docs/api "Stripe API"
