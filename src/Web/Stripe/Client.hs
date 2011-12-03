@@ -12,6 +12,7 @@ module Web.Stripe.Client
     , runStripeT
     , baseSReq
     , query
+    , query_
 
     {- Re-Export -}
     , StdMethod(..)
@@ -210,6 +211,11 @@ query req = query' req >>= \(code, ans) -> (,) code `liftM` decodeJ ans
     where
         decodeJ     = tryEither . resultToEither . decode
         tryEither   = either (throwError . strMsg) return
+
+-- | Acts just like 'query', but on success, throws away the response. Errors
+--   contacting the Stripe API will still be reported.
+query_ :: MonadIO m => SRequest -> StripeT m ()
+query_ req = query' req >> return ()
 
 -- | Determines the appropriate 'CurlOption's for a given 'SRequest'.
 --   Presently, this provides a User-Agent string, adds any available HTTP
