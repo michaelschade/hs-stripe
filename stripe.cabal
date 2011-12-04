@@ -17,7 +17,8 @@ Library
   -- Modules exported by the library.
     ghc-options:        -Wall -fwarn-tabs
     Hs-Source-Dirs:     src
-    Exposed-modules:      Web.Stripe.Client
+    Exposed-modules:      Web.Stripe.Card
+                        , Web.Stripe.Client
                         , Web.Stripe.Plan
                         , Web.Stripe.Utils
     Build-depends:        base          >= 3 && < 5
