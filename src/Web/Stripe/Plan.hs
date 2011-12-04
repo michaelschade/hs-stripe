@@ -41,7 +41,7 @@ data Plan = Plan
     } deriving Show
 
 -- | Represents the billing cycle for a plan. If an interval identifier is not
---   knowm, 'UnknownPlan' is used to carry the original identifier supplied by
+--   known, 'UnknownPlan' is used to carry the original identifier supplied by
 --   Stripe.
 data PlanInterval = Monthly | Yearly | UnknownPlan String deriving Show
 
@@ -76,13 +76,13 @@ getPlans  = do
     either err return . resultToEither . valFromObj "data" $ rsp
     where err _ = throwError $ strMsg "Unable to parse plan list."
 
--- | Deletes a 'Customer' if it exists. If it does not, an
---   'InvalidRequestError' will be thrown indicating this.
+-- | Deletes a 'Plan' if it exists. If it does not, an 'InvalidRequestError'
+--   will be thrown indicating this.
 delPlan :: MonadIO m => Plan -> StripeT m Bool
 delPlan  = delPlanById . planId
 
--- | Deletes a 'Customer', identified by its 'CustomerId', if it exists.  If it
---   does not, an 'InvalidRequestError' will be thrown indicating this.
+-- | Deletes a 'Plan', identified by its 'PlanId', if it exists.  If it does
+--   not, an 'InvalidRequestError' will be thrown indicating this.
 delPlanById :: MonadIO m => PlanId -> StripeT m Bool
 delPlanById (PlanId pid) = query req >>=
     either err return . resultToEither . valFromObj "deleted" . snd
@@ -90,7 +90,7 @@ delPlanById (PlanId pid) = query req >>=
         err _   = throwError $ strMsg "Unable to parse plan delete."
         req     = (planRq [pid]) { sMethod = DELETE }
 
--- | Convenience function to create a 'SRequest' specific to customer-related
+-- | Convenience function to create a 'SRequest' specific to plan-related
 --   actions.
 planRq :: [String] -> SRequest
 planRq pcs = baseSReq { sDestination = "plans":pcs }
