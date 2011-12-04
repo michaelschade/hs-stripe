@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Web.Stripe.Client
     ( SConfig(..)

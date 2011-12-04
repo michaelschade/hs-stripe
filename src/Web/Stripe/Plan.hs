@@ -1,5 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
-
 module Web.Stripe.Plan
     ( Plan(..)
     , PlanInterval(..)
