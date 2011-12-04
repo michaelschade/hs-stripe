@@ -6,7 +6,7 @@ module Web.Stripe.Card
 
 import Control.Monad    ( liftM, ap )
 import Text.JSON        ( Result(Error), JSON(..), JSValue(JSObject) )
-import Web.Stripe.Utils ( jGet )
+import Web.Stripe.Utils ( jGet, optionalArgs )
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
@@ -51,18 +51,6 @@ rCardKV rc = fd ++ optionalArgs md
              , ("card[address_state]",   rCardAddrState     rc)
              , ("card[address_country]", rCardAddrCountry   rc)
              ]
-
--- | Takes a list of key-value arguments, where the value is optional, and
---   returns a list of key-value pairs with only the supplied values.
---
---   Essentially, this filters out all 'Nothing's and unwraps the 'Just's.
---
--- >>> optionalArgs [("k1", Just "supplied"), ("k2", Nothing)]
--- [("k1","supplied")]
-optionalArgs :: [(String, Maybe String)] -> [(String, String)]
-optionalArgs []                 = []
-optionalArgs ((_, Nothing):xs)  = optionalArgs xs
-optionalArgs ((a, Just b):xs)   = (a, b):optionalArgs xs
 
 ------------------
 -- JSON Parsing --
