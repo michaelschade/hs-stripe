@@ -1,5 +1,7 @@
 module Web.Stripe.Utils
-    ( optionalArgs
+    ( Amount(..)
+    , Currency(..)
+    , optionalArgs
     , jGet
     , mjGet
     ) where
@@ -8,6 +10,19 @@ import Text.JSON ( Result(..), JSObject, JSON(..), JSValue(..), resultToEither
                  , valFromObj
                  )
 
+-----------------------
+-- Common Data Types --
+-----------------------
+
+-- | Represents an amount in cents in the Stripe system.
+newtype Amount = Amount { unAmount :: Int } deriving Show
+
+-- | Represents a currency (e.g., "usd") in the Stripe system.
+newtype Currency = Currency { unCurrency :: String } deriving Show
+
+-----------------------
+-- Utility Functions --
+-----------------------
 
 -- | Takes a list of key-value arguments, where the value is optional, and
 --   returns a list of key-value pairs with only the supplied values.

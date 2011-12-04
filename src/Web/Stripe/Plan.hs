@@ -27,7 +27,7 @@ import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             , query, query_, runStripeT
                             )
-import Web.Stripe.Utils     ( jGet )
+import Web.Stripe.Utils     ( Amount(..), Currency(..), jGet )
 
 ----------------
 -- Data Types --
@@ -36,10 +36,10 @@ import Web.Stripe.Utils     ( jGet )
 -- | Represents a plan in the Stripe system.
 data Plan = Plan
     { planId        :: PlanId
-    , planAmount    :: Int
+    , planAmount    :: Amount
     , planInterval  :: PlanInterval
     , planName      :: String
-    , planCurrency  :: String
+    , planCurrency  :: Currency
     } deriving Show
 
 -- | Represents the billing cycle for a plan. If an interval identifier is not
@@ -61,10 +61,10 @@ createPlan p mtd = query_ (planRq []) { sMethod = POST, sData = fdata }
         fdata   = maybe pdata ((:pdata) . trialKV) mtd
         trialKV = (,) "trial_period_days" . show . unPlanTrialDays
         pdata   = [ ("id",       unPlanId $ planId p)
-                  , ("amount",   show $ planAmount p)
+                  , ("amount",   show . unAmount  $ planAmount p)
                   , ("interval", fromPlanInterval $ planInterval p)
                   , ("name",     planName p)
-                  , ("currency", planCurrency p)
+                  , ("currency", unCurrency $ planCurrency p)
                   ]
 
 -- | Retrieves a specific 'Plan' based on its 'PlanId'.
@@ -119,10 +119,10 @@ toPlanInterval p = case map toLower p of
 -- | Attempts to parse JSON into a 'Plan'.
 instance JSON Plan where
     readJSON (JSObject c) =
-        Plan `liftM` (return . PlanId =<< jGet c "id")
-                `ap` jGet c "amount"
+        Plan `liftM` (return . planId         =<< jGet c "id")
+                `ap` (return . Amount         =<< jGet c "amount")
                 `ap` (return . toPlanInterval =<< jGet c "interval")
                 `ap` jGet c "name"
-                `ap` jGet c "currency"
+                `ap` (return . Currency       =<< jGet c "currency")
     readJSON _ = Error "Unable to read Stripe plan."
     showJSON _ = undefined
