@@ -17,7 +17,8 @@ import Text.JSON ( Result(..), JSObject, JSON(..), JSValue(..), resultToEither
 -- | Represents an amount in cents in the Stripe system.
 newtype Amount = Amount { unAmount :: Int } deriving Show
 
--- | Represents a currency (e.g., "usd") in the Stripe system.
+-- | Represents a currency (e.g., "usd") in the Stripe system. This is
+--   a 3-letter ISO code.
 newtype Currency = Currency { unCurrency :: String } deriving Show
 
 -----------------------
