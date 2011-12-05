@@ -47,7 +47,7 @@ import qualified Data.Text as T
 -- | Configuration for the 'StripeT' monad transformer.
 data SConfig = SConfig
     { key    :: String
-    , caFile :: String
+    , caFile :: FilePath
     } deriving Show
 
 -- | This represents the possible successes that a connection to the Stripe
@@ -188,12 +188,13 @@ baseSReq  = SRequest
 query' :: MonadIO m => SRequest -> StripeT m (SResponseCode, String)
 query' req = do
     cfg  <- get
-    rsp  <- liftIO (request (show $ prepRq cfg req) opts :: IO CurlResponse)
+    let opts' = opts $ caFile cfg
+    rsp  <- liftIO (request (show $ prepRq cfg req) opts' :: IO CurlResponse)
     code <- toCode (respStatus rsp) (respBody rsp)
     return (code, respBody rsp)
     where
-        opts    = CurlFailOnError False : queryOptions req
-        request = curlGetResponse_
+        opts caf = CurlCAInfo caf : CurlFailOnError False : queryOptions req
+        request  = curlGetResponse_
 
 -- | Queries the Stripe API and attempts to parse the results into a data type
 --   that is an instance of 'JSON'. This is primarily for internal use by other
