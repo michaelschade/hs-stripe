@@ -1,8 +1,8 @@
 module Web.Stripe.Plan
     ( Plan(..)
     , PlanInterval(..)
-    , PlanId(PlanId)
-    , PlanTrialDays(PlanTrialDays)
+    , PlanId(..)
+    , PlanTrialDays(..)
     , createPlan
     , getPlan
     , getPlans
