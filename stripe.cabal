@@ -20,6 +20,7 @@ Library
     Exposed-modules:      Web.Stripe.Card
                         , Web.Stripe.Client
                         , Web.Stripe.Coupon
+                        , Web.Stripe.Customer
                         , Web.Stripe.Plan
                         , Web.Stripe.Token
                         , Web.Stripe.Utils
