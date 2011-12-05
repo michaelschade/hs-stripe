@@ -1,6 +1,9 @@
 module Web.Stripe.Utils
     ( Amount(..)
+    , Count(..)
     , Currency(..)
+    , Description(..)
+    , Offset(..)
     , optionalArgs
     , jGet
     , mjGet
@@ -17,9 +20,20 @@ import Text.JSON ( Result(..), JSObject, JSON(..), JSValue(..), resultToEither
 -- | Represents an amount in cents in the Stripe system.
 newtype Amount = Amount { unAmount :: Int } deriving Show
 
+-- | A maximum number of objects that the Stripe API will return. This value
+--   should be between 1 and 100, inclusive.
+newtype Count = Count { unCount :: Int } deriving Show
+
 -- | Represents a currency (e.g., "usd") in the Stripe system. This is
 --   a 3-letter ISO code.
 newtype Currency = Currency { unCurrency :: String } deriving Show
+
+-- | Describes an object in the Stripe system.
+newtype Description = Description { unDescription :: String } deriving Show
+
+-- | A positive integer that is an offset into the array of objects returned
+--   by the Stripe API.
+newtype Offset = Offset { unOffset :: Int } deriving Show
 
 -----------------------
 -- Utility Functions --
