@@ -11,6 +11,7 @@ module Web.Stripe.Customer
     , delCustomerById
 
     {- Re-Export -}
+    , UTCTime(..)
     , SConfig(..)
     , StripeT(StripeT)
     , runStripeT
@@ -29,7 +30,9 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..)
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Plan      ( PlanId(..) )
-import Web.Stripe.Utils     ( Description(..), jGet, mjGet, optionalArgs )
+import Web.Stripe.Utils     ( Description(..), UTCTime(..), fromSeconds, jGet
+                            , mjGet, optionalArgs
+                            )
 
 ----------------
 -- Data Types --
@@ -41,7 +44,7 @@ data Customer = Customer
     , custEmail         :: Email
     , custDescription   :: Maybe Description
     , custLive          :: Bool
-    , custCreated       :: Int
+    , custCreated       :: UTCTime
     , custActiveCard    :: Maybe Card
     } deriving Show
 
@@ -127,7 +130,7 @@ instance JSON Customer where
                     `ap` (Email        <$> jGet c "email")
                     `ap` ((Description <$>) <$> mjGet c "description")
                     `ap` jGet  c "livemode"
-                    `ap` jGet  c "created"
+                    `ap` (fromSeconds  <$> jGet  c "created")
                     `ap` mjGet c "active_card"
     readJSON _ = Error "Unable to read Stripe customer."
     showJSON _ = undefined

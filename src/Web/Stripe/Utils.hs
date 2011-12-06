@@ -7,11 +7,20 @@ module Web.Stripe.Utils
     , optionalArgs
     , jGet
     , mjGet
+
+    {- Re-Export -}
+    , UTCTime(..)
+    , fromSeconds
+    , toSeconds
     ) where
 
-import Text.JSON ( Result(..), JSObject, JSON(..), JSValue(..), resultToEither
-                 , valFromObj
-                 )
+import Data.Time.Clock          ( UTCTime(..) )
+import Data.Time.Clock.POSIX    ( posixSecondsToUTCTime, utcTimeToPOSIXSeconds
+                                )
+import Data.Time.Format         ( ) -- imports Show instance for UTCTime
+import Text.JSON                ( Result(..), JSObject, JSON(..), JSValue(..)
+                                , resultToEither, valFromObj
+                                )
 
 -----------------------
 -- Common Data Types --
@@ -38,6 +47,15 @@ newtype Offset = Offset { unOffset :: Int } deriving Show
 -----------------------
 -- Utility Functions --
 -----------------------
+
+-- | Convert a time in seconds (from Stripe's servers) to 'UTCTime'. See
+--   "Data.Time.Format" for more on working with 'UTCTime'.
+fromSeconds :: Integer -> UTCTime
+fromSeconds  = posixSecondsToUTCTime . fromInteger
+
+-- | Convert a 'UTCTime' back to an Integer suitable for use with Stripe's API.
+toSeconds :: UTCTime -> Integer
+toSeconds  = round . utcTimeToPOSIXSeconds
 
 -- | Takes a list of key-value arguments, where the value is optional, and
 --   returns a list of key-value pairs with only the supplied values.

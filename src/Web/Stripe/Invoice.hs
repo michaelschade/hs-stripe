@@ -35,8 +35,8 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             )
 import Web.Stripe.Customer  ( Customer(..), CustomerId(..) )
 import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
-                            , Description(..), Offset(..), jGet, mjGet
-                            , optionalArgs
+                            , Description(..), Offset(..), UTCTime(..)
+                            , fromSeconds, jGet, mjGet, optionalArgs
                             )
 
 --------------
@@ -45,7 +45,7 @@ import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
 
 data Invoice = Invoice
     { ivId          :: InvId
-    , ivCreated     :: Int
+    , ivCreated     :: UTCTime
     , ivSubtotal    :: Amount
     , ivTotal       :: Amount
     , ivLines       :: [InvoiceItem]
@@ -64,7 +64,7 @@ getInv (InvId iid) = snd `liftM` query (invRq [iid])
 --      * number of 'InvoiceItem's, via 'Count', and
 --      * page of results, via 'Offset'
 getInvs :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
-        -> StripeT m Invoice
+        -> StripeT m [Invoice]
 getInvs  = getList (invItemRq []) "Unable to parse invoice list."
 
 -- | Retrieve the upcoming 'Invoice' for a given 'Customer' from the Stripe
@@ -90,7 +90,7 @@ invRq pcs = baseSReq { sDestination = "invoices":pcs }
 -- | Represents an invoice item in the Stripe system.
 data InvoiceItem = InvoiceItem
     { iviId             :: InvItemId
-    , iviDate           :: Int
+    , iviDate           :: UTCTime
     , iviDescription    :: Maybe Description
     , iviAmount         :: Amount
     , iviCurrency       :: Currency
@@ -172,10 +172,10 @@ invItemRq pcs = baseSReq { sDestination = "invoiceitems":pcs }
 -- | Attempts to parse JSON into a 'Invoice'.
 instance JSON Invoice where
     readJSON (JSObject c) =
-        Invoice  `liftM` (InvId  <$> jGet c "id")
-                    `ap` jGet c "created"
-                    `ap` (Amount <$> jGet c "subtotal")
-                    `ap` (Amount <$> jGet c "total")
+        Invoice  `liftM` (InvId         <$> jGet c "id")
+                    `ap` (fromSeconds   <$> jGet c "created")
+                    `ap` (Amount        <$> jGet c "subtotal")
+                    `ap` (Amount        <$> jGet c "total")
                     `ap` jGet c "lines"
     readJSON _ = Error "Unable to read Stripe invoice."
     showJSON _ = undefined
@@ -183,10 +183,10 @@ instance JSON Invoice where
 -- | Attempts to parse JSON into a 'InvoiceItem'.
 instance JSON InvoiceItem where
     readJSON (JSObject c) =
-        InvoiceItem  `liftM` (InvItemId    <$> jGet  c "id")
-                        `ap` jGet c "date"
+        InvoiceItem  `liftM` (InvItemId         <$> jGet  c "id")
+                        `ap` (fromSeconds       <$> jGet  c "date")
                         `ap` ((Description <$>) <$> mjGet c "description")
-                        `ap` (Amount       <$> jGet  c "amount")
-                        `ap` (Currency     <$> jGet  c "currency")
+                        `ap` (Amount            <$> jGet  c "amount")
+                        `ap` (Currency          <$> jGet  c "currency")
     readJSON _ = Error "Unable to read Stripe invoice item."
     showJSON _ = undefined

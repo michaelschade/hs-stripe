@@ -14,6 +14,7 @@ module Web.Stripe.Charge
     , fullRefundById
 
     {- Re-Export -}
+    , UTCTime(..)
     , SConfig(..)
     , StripeT(StripeT)
     , runStripeT
@@ -33,8 +34,8 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             )
 import Web.Stripe.Token     ( Token(..), TokenId(..) )
 import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
-                            , Description(..), Offset(..), jGet, mjGet
-                            , optionalArgs
+                            , Description(..), Offset(..), UTCTime(..)
+                            , fromSeconds, jGet, mjGet, optionalArgs
                             )
 
 ----------------
@@ -44,7 +45,7 @@ import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
 -- | Represents a charge in the Stripe system.
 data Charge = Charge
     { chargeId          :: ChargeId
-    , chargeCreated     :: Int
+    , chargeCreated     :: UTCTime
     , chargeDescription :: Maybe Description
     , chargeCurrency    :: Currency
     , chargeAmount      :: Amount
@@ -159,11 +160,11 @@ chargeRq pcs = baseSReq { sDestination = "charges":pcs }
 -- | Attempts to parse JSON into a 'Charge'.
 instance JSON Charge where
     readJSON (JSObject c) =
-        Charge `liftM` (ChargeId <$> jGet c "id")
-                  `ap` jGet  c "created"
+        Charge `liftM` (ChargeId          <$> jGet  c "id")
+                  `ap` (fromSeconds       <$> jGet  c "created")
                   `ap` ((Description <$>) <$> mjGet c "description")
-                  `ap` (Currency <$> jGet c "currency")
-                  `ap` (Amount   <$> jGet c "amount")
+                  `ap` (Currency          <$> jGet  c "currency")
+                  `ap` (Amount            <$> jGet  c "amount")
                   `ap` jGet  c "fee"
                   `ap` jGet  c "livemode"
                   `ap` jGet  c "paid"

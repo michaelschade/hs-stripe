@@ -9,6 +9,7 @@ module Web.Stripe.Subscription
     , cancelSub
 
     {- Re-Export -}
+    , UTCTime(..)
     , SConfig(..)
     , StripeT(StripeT)
     , runStripeT
@@ -28,7 +29,7 @@ import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Customer  ( CustomerId(..) )
 import Web.Stripe.Token     ( TokenId(..) )
 import Web.Stripe.Plan      ( Plan, PlanId(..) )
-import Web.Stripe.Utils     ( jGet, optionalArgs )
+import Web.Stripe.Utils     ( UTCTime(..), fromSeconds, jGet, optionalArgs )
 
 ------------------
 -- Subsriptions --
@@ -39,11 +40,11 @@ data Subscription = Subscription
     { subCustomerId     :: CustomerId
     , subPlan           :: Plan
     , subStatus         :: SubStatus
-    , subStart          :: Int
-    , subTrialStart     :: Int
-    , subTrialEnd       :: Int
-    , subPeriodStart    :: Int -- ^ Current period start
-    , subPeriodEnd      :: Int -- ^ Current period end
+    , subStart          :: UTCTime
+    , subTrialStart     :: UTCTime
+    , subTrialEnd       :: UTCTime
+    , subPeriodStart    :: UTCTime -- ^ Current period start
+    , subPeriodEnd      :: UTCTime -- ^ Current period end
     } deriving Show
 
 -- | Describes the various stages that a
@@ -128,10 +129,10 @@ instance JSON Subscription where
         Subscription `liftM` (CustomerId  <$> jGet c "customer")
                         `ap` jGet c "plan"
                         `ap` (toSubStatus <$> jGet c "status")
-                        `ap` jGet c "start"
-                        `ap` jGet c "trial_start"
-                        `ap` jGet c "trial_end"
-                        `ap` jGet c "current_period_start"
-                        `ap` jGet c "current_period_end"
+                        `ap` (fromSeconds <$> jGet c "start")
+                        `ap` (fromSeconds <$> jGet c "trial_start")
+                        `ap` (fromSeconds <$> jGet c "trial_end")
+                        `ap` (fromSeconds <$> jGet c "current_period_start")
+                        `ap` (fromSeconds <$> jGet c "current_period_end")
     readJSON _ = Error "Unable to read Stripe subscription."
     showJSON _ = undefined

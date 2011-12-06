@@ -5,6 +5,7 @@ module Web.Stripe.Token
     , getToken
 
     {- Re-Export -}
+    , UTCTime(..)
     , Amount(..)
     , Card(..)
     , Currency(..)
@@ -22,7 +23,9 @@ import Web.Stripe.Card      ( Card(..), RequestCard(..), rCardKV )
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             , query, runStripeT
                             )
-import Web.Stripe.Utils     ( Amount(..), Currency(..), jGet, optionalArgs )
+import Web.Stripe.Utils     ( Amount(..), Currency(..), UTCTime(..), fromSeconds
+                            , jGet, optionalArgs
+                            )
 
 ----------------
 -- Data Types --
@@ -33,7 +36,7 @@ data Token = Token
     { tokId         :: TokenId
     , tokLive       :: Bool
     , tokUsed       :: Bool
-    , tokCreated    :: Int
+    , tokCreated    :: UTCTime
     , tokAmount     :: Amount
     , tokCurrency   :: Currency
     , tokCard       :: Card
@@ -68,12 +71,12 @@ tokRq pcs = baseSReq { sDestination = "tokens":pcs }
 -- | Attempts to parse JSON into a 'Token'.
 instance JSON Token where
     readJSON (JSObject c) =
-        Token `liftM` (return . TokenId  =<< jGet c "id")
+        Token `liftM` (TokenId      <$> jGet c "id")
                  `ap` jGet c "livemode"
                  `ap` jGet c "used"
-                 `ap` jGet c "created"
-                 `ap` (return . Amount   =<< jGet c "amount")
-                 `ap` (return . Currency =<< jGet c "currency")
+                 `ap` (fromSeconds  <$> jGet c "created")
+                 `ap` (Amount       <$> jGet c "amount")
+                 `ap` (Currency     <$> jGet c "currency")
                  `ap` jGet c "card"
     readJSON _ = Error "Unable to read Stripe token."
     showJSON _ = undefined
