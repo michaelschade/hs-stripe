@@ -2,6 +2,7 @@
 
 module Web.Stripe.Client
     ( SConfig(..)
+    , APIKey(..)
     , SResponseCode(..)
     , SFailure(..)
     , SError(..)
@@ -9,6 +10,7 @@ module Web.Stripe.Client
     , SRequest(..)
     , Stripe
     , StripeT(StripeT)
+    , defaultConfig
     , runStripeT
     , baseSReq
     , query
@@ -47,9 +49,12 @@ import qualified Data.Text              as T
 
 -- | Configuration for the 'StripeT' monad transformer.
 data SConfig = SConfig
-    { key    :: String
+    { key    :: APIKey
     , caFile :: FilePath
     } deriving Show
+
+-- | A key used when authenticating to the Stripe API.
+newtype APIKey = APIKey { unAPIKey :: String } deriving Show
 
 -- | This represents the possible successes that a connection to the Stripe
 --   API can encounter. For specificity, a success can be represented by other
@@ -164,6 +169,12 @@ runStripeT cfg m =
 -- Querying --
 --------------
 
+-- | Provides a default 'SConfig'. Essentially, this inserts the 'APIKey', but
+--   leaves other fields blank. This is especially relavent due to the current
+--   CA file check bug.
+defaultConfig  :: APIKey -> SConfig
+defaultConfig k = SConfig k ""
+
 -- | The basic 'SRequest' environment upon which all other Stripe API requests
 --   will be built. Standard usage involves overriding one or more of the
 --   fields. E.g., for a request to \"https://api.stripe.com/v1/coupons\",
@@ -243,7 +254,7 @@ prepRq cfg rq =
         , uriQuery = C8.unpack $ renderQuery True qs
         }
     where
-        uri = baseURI (key cfg)
+        uri = baseURI (unAPIKey $ key cfg)
         qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString rq
 
 -- | Takes a Stripe API key (see 'SConfig') to produce a authentication-ready
