@@ -30,7 +30,7 @@ main  = do
 ```
 
 Which produces the output along the lines of:
-`[(4500,"usd"),(4500,"usd"),(4500,"usd"),(4500,"usd"),(4500,"usd")]`.
+`[(842,"usd"),(2048,"usd"),(1010,"usd"),(4096,"usd"),(4200,"usd")]`.
 
 Limitations
 ===========
