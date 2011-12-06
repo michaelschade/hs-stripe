@@ -24,6 +24,7 @@ Library
                         , Web.Stripe.Customer
                         , Web.Stripe.Invoice
                         , Web.Stripe.Plan
+                        , Web.Stripe.Subscription
                         , Web.Stripe.Token
                         , Web.Stripe.Utils
     Build-depends:        base          >= 3 && < 5
