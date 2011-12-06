@@ -31,14 +31,15 @@ import Network.Curl         ( CurlOption(..), CurlResponse, CurlResponse_(..)
                             , curlGetResponse_, method_GET, method_HEAD
                             , method_POST
                             )
-import Network.HTTP.Types   ( StdMethod(..) )
+import Network.HTTP.Types   ( StdMethod(..), renderQuery )
 import Network.URI          ( URI(..), URIAuth(..) )
 import Text.JSON            ( Result(..), JSObject, JSON(..), JSValue(..)
                             , decode, resultToEither, toJSObject, valFromObj
                             )
 import Web.Stripe.Utils     ( jGet, mjGet )
 
-import qualified Data.Text as T
+import qualified Data.ByteString.Char8  as C8
+import qualified Data.Text              as T
 
 ------------------------
 -- General Data Types --
@@ -130,7 +131,7 @@ data SRequest = SRequest
     { sMethod       :: StdMethod
     , sDestination  :: [String]
     , sData         :: [(String, String)]
-    , sBody         :: String
+    , sQString      :: [(String, String)]
     } deriving Show
 
 ------------------
@@ -174,7 +175,7 @@ baseSReq  = SRequest
     { sMethod       = GET
     , sDestination  = []
     , sData         = []
-    , sBody         = ""
+    , sQString      = []
     }
 
 -- | Queries the Stripe API. This returns the response body along with the
@@ -237,8 +238,13 @@ queryOptions req = CurlUserAgent ua : CurlPostFields dopts : mopts
 -- | Transforms a 'SRequest' into a more general 'URI', which can be used to
 --   make an authenticated query to the Stripe server.
 prepRq :: SConfig -> SRequest -> URI
-prepRq cfg rq = uri { uriPath  = intercalate "/" (uriPath uri:sDestination rq) }
-    where uri = baseURI (key cfg)
+prepRq cfg rq =
+    uri { uriPath  = intercalate "/" (uriPath uri:sDestination rq)
+        , uriQuery = C8.unpack $ renderQuery True qs
+        }
+    where
+        uri = baseURI (key cfg)
+        qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString rq
 
 -- | Takes a Stripe API key (see 'SConfig') to produce a authentication-ready
 --   URI to be used when querying the server. API. This defines fields with
