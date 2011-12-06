@@ -6,7 +6,7 @@ module Web.Stripe.Invoice
     , getInv
     , getInvs
     , getUpcomingInv
-    , getUpcomingIvByCid
+    , getUpcomingInvByCid
 
     {- Invoice Items -}
     , InvoiceItem(..)
@@ -72,12 +72,12 @@ getInvs  = getList (invItemRq []) "Unable to parse invoice list."
 -- | Retrieve the upcoming 'Invoice' for a given 'Customer' from the Stripe
 --   system.
 getUpcomingInv :: MonadIO m => Customer -> StripeT m Invoice
-getUpcomingInv  = getUpcomingIvByCid . custId
+getUpcomingInv  = getUpcomingInvByCid . custId
 
 -- | Retrieve the upcoming 'Invoice' for a given 'Customer', identified by
 --   'CustomerId', from the Stripe system.
-getUpcomingIvByCid :: MonadIO m => CustomerId -> StripeT m Invoice
-getUpcomingIvByCid (CustomerId cid) =
+getUpcomingInvByCid :: MonadIO m => CustomerId -> StripeT m Invoice
+getUpcomingInvByCid (CustomerId cid) =
     snd `liftM` query (invRq ["upcoming"]) { sData = [("customer", cid)] }
 
 -- | Convenience function to create a 'SRequest' specific to invoice-related
