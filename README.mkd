@@ -6,6 +6,35 @@ Description
 
 This is an *unofficial* Haskell implementation of the [Stripe API][sapi].
 
+Example Usage
+=============
+
+> import Web.Stripe.Charge  ( Charge(..), Amount(..), Count(..), Currency(..)
+>                           , Offset(..), getCharges
+>                           )
+> import Web.Stripe.Client  ( APIKey(..), SConfig, defaultConfig, runStripeT )
+>
+> conf :: SConfig
+> conf  = defaultConfig $ APIKey ""
+>
+> main :: IO ()
+> main  = do
+>     amounts <- runStripeT conf $ do
+>         charges <- getCharges Nothing (Just $ Count 5) (Just $ Offset 1)
+>         return   $ map getAmt charges
+>     either err (putStrLn . show) amounts
+>     where
+>         getAmt c = (unAmount $ chargeAmount c, unCurrency $ chargeCurrency c)
+>         err _    = putStrLn "Uh-oh! It didn't work :-("
+
+Which produces the output along the lines of:
+`[(4500,"usd"),(4500,"usd"),(4500,"usd"),(4500,"usd"),(4500,"usd")]`.
+
+Limitations
+===========
+
+* This package currently does not implement Stripe invoices.
+
 Help
 ====
 
