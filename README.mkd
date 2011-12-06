@@ -9,17 +9,6 @@ This is an *unofficial* Haskell implementation of the [Stripe API][sapi].
 Example Usage
 =============
 
-Created by [Michael Schade](http://mschade.me/)
-([@michaelschade](https://twitter.com/intent/user?screen_name=michaelschade)).
-
-Description
-===========
-
-This is an *unofficial* Haskell implementation of the [Stripe API][sapi].
-
-Example Usage
-=============
-
 ```haskell
 import Web.Stripe.Charge  ( Charge(..), Amount(..), Count(..), Currency(..)
                           , Offset(..), getCharges
