@@ -11,6 +11,9 @@ module Web.Stripe.Customer
     , delCustomerById
 
     {- Re-Export -}
+    , Count(..)
+    , Offset(..)
+    , Description(..)
     , UTCTime(..)
     , SConfig(..)
     , StripeT(StripeT)
@@ -30,8 +33,9 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..)
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Plan      ( PlanId(..) )
-import Web.Stripe.Utils     ( Description(..), UTCTime(..), fromSeconds, jGet
-                            , mjGet, optionalArgs
+import Web.Stripe.Utils     ( Count(..), Offset(..), Description(..)
+                            , UTCTime(..), fromSeconds, jGet, mjGet
+                            , optionalArgs
                             )
 
 ----------------
@@ -93,12 +97,20 @@ getCustomer :: MonadIO m => CustomerId -> StripeT m Customer
 getCustomer (CustomerId cid) =
     return . snd =<< query (customerRq [cid])
 
--- | Retrieves a list of all 'Customer's.
-getCustomers :: MonadIO m => StripeT m [Customer]
-getCustomers  = do
-    (_, rsp) <- query $ customerRq []
+-- | Retrieves a list of all 'Customer's. The query can optionally be refined
+--   to a specific:
+--
+--      * number of charges, via 'Count' and
+--      * page of results, via 'Offset'.
+getCustomers :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Customer]
+getCustomers mc mo = do
+    (_, rsp) <- query $ (customerRq []) { sQString = qstring }
     either err return . resultToEither . valFromObj "data" $ rsp
-    where err _ = throwError $ strMsg "Unable to parse customer list."
+    where
+        qstring = optionalArgs  [ ("count",  show . unCount  <$> mc)
+                                , ("offset", show . unOffset <$> mo)
+                                ]
+        err _   = throwError $ strMsg "Unable to parse customer list."
 
 -- | Deletes a 'Customer' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.

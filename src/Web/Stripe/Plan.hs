@@ -10,6 +10,10 @@ module Web.Stripe.Plan
     , delPlanById
 
     {- Re-Export -}
+    , Amount(..)
+    , Count(..)
+    , Currency(..)
+    , Offset(..)
     , SConfig(..)
     , StripeT(StripeT)
     , runStripeT
@@ -26,8 +30,8 @@ import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             , query, query_, runStripeT
                             )
-import Web.Stripe.Utils     ( Amount(..), Currency(..), jGet, mjGet
-                            , optionalArgs
+import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..), Offset(..)
+                            , jGet, mjGet, optionalArgs
                             )
 
 ----------------
@@ -76,12 +80,20 @@ createPlan p = query_ (planRq []) { sMethod = POST, sData = fdata }
 getPlan :: MonadIO m => PlanId -> StripeT m Plan
 getPlan (PlanId pid) = return . snd =<< query (planRq [pid])
 
--- | Retrieves a list of all 'Plan's.
-getPlans :: MonadIO m => StripeT m [Plan]
-getPlans  = do
-    (_, rsp) <- query $ planRq []
+-- | Retrieves a list of all 'Plan's. The query can optionally be refined to
+--   a specific:
+--
+--      * number of charges, via 'Count' and
+--      * page of results, via 'Offset'.
+getPlans :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Plan]
+getPlans mc mo = do
+    (_, rsp) <- query (planRq []) { sQString = qs }
     either err return . resultToEither . valFromObj "data" $ rsp
-    where err _ = throwError $ strMsg "Unable to parse plan list."
+    where
+        qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
+                             , ("offset", show . unOffset <$> mo)
+                             ]
+        err _ = throwError $ strMsg "Unable to parse plan list."
 
 -- | Deletes a 'Plan' if it exists. If it does not, an 'InvalidRequestError'
 --   will be thrown indicating this.

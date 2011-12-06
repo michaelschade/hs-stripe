@@ -12,6 +12,8 @@ module Web.Stripe.Coupon
     , delCouponById
 
     {- Re-Export -}
+    , Count(..)
+    , Offset(..)
     , SConfig(..)
     , StripeT(StripeT)
     , runStripeT
@@ -28,7 +30,7 @@ import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             , query, query_, runStripeT
                             )
-import Web.Stripe.Utils     ( jGet, mjGet, optionalArgs )
+import Web.Stripe.Utils     ( Count(..), Offset(..), jGet, mjGet, optionalArgs )
 
 ----------------
 -- Data Types --
@@ -82,12 +84,20 @@ createCoupon c mmr mrb = query_ (cpnRq []) { sMethod = POST, sData = fdata }
 getCoupon :: MonadIO m => CpnId -> StripeT m Coupon
 getCoupon (CpnId cid) = return . snd =<< query (cpnRq [cid])
 
--- | Retrieves a list of all 'Coupon's.
-getCoupons :: MonadIO m => StripeT m [Coupon]
-getCoupons  = do
-    (_, rsp) <- query $ cpnRq []
+-- | Retrieves a list of all 'Coupon's. The query can optionally be refined to
+--   a specific:
+--
+--      * number of charges, via 'Count' and
+--      * page of results, via 'Offset'.
+getCoupons :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Coupon]
+getCoupons mc mo = do
+    (_, rsp) <- query (cpnRq []) { sQString = qs }
     either err return . resultToEither . valFromObj "data" $ rsp
-    where err _ = throwError $ strMsg "Unable to parse coupon list."
+    where
+        qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
+                             , ("offset", show . unOffset <$> mo)
+                             ]
+        err _ = throwError $ strMsg "Unable to parse coupon list."
 
 -- | Deletes a 'Coupon' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.

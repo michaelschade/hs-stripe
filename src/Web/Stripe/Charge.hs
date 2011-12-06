@@ -14,6 +14,11 @@ module Web.Stripe.Charge
     , fullRefundById
 
     {- Re-Export -}
+    , Amount(..)
+    , Count(..)
+    , Currency(..)
+    , Description(..)
+    , Offset(..)
     , UTCTime(..)
     , SConfig(..)
     , StripeT(StripeT)
@@ -113,10 +118,10 @@ getCharge (ChargeId cid) = snd `liftM` query (chargeRq [cid])
 getCharges :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
            -> StripeT m [Charge]
 getCharges mcid mc mo = do
-    (_, rsp) <- query $ (chargeRq []) { sData = optionalArgs odata }
+    (_, rsp) <- query $ (chargeRq []) { sQString = optionalArgs oqs }
     either err return . resultToEither . valFromObj "data" $ rsp
     where
-        odata = [ ("count",     show . unCount  <$> mc)
+        oqs   = [ ("count",     show . unCount  <$> mc)
                 , ("offset",    show . unOffset <$> mo)
                 , ("customer",  unCustomerId    <$> mcid)
                 ]
