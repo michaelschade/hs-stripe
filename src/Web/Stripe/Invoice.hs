@@ -43,6 +43,7 @@ import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
 -- Invoices --
 --------------
 
+-- | Represents an invoice in the Stripe system.
 data Invoice = Invoice
     { ivId          :: InvId
     , ivCreated     :: UTCTime
@@ -51,6 +52,7 @@ data Invoice = Invoice
     , ivLines       :: [InvoiceItem]
     } deriving Show
 
+-- | Identifier for an 'Invoice' in the Stripe system.
 newtype InvId = InvId { unInvId :: String } deriving Show
 
 -- | Retrieve an 'Invoice', identified by 'InvId', from the Stripe API.
