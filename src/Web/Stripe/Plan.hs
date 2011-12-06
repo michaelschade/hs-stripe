@@ -15,6 +15,7 @@ module Web.Stripe.Plan
     , runStripeT
     ) where
 
+import Control.Applicative  ( (<$>) )
 import Control.Monad        ( liftM, ap )
 import Control.Monad.Error  ( MonadIO, throwError, strMsg )
 import Data.Char            ( toLower )
@@ -25,7 +26,9 @@ import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
                             , query, query_, runStripeT
                             )
-import Web.Stripe.Utils     ( Amount(..), Currency(..), jGet )
+import Web.Stripe.Utils     ( Amount(..), Currency(..), jGet, mjGet
+                            , optionalArgs
+                            )
 
 ----------------
 -- Data Types --
@@ -38,6 +41,7 @@ data Plan = Plan
     , planInterval  :: PlanInterval
     , planName      :: String
     , planCurrency  :: Currency
+    , planTrialDays :: Maybe PlanTrialDays
     } deriving Show
 
 -- | Represents the billing cycle for a plan. If an interval identifier is not
@@ -53,16 +57,19 @@ newtype PlanId = PlanId { unPlanId :: String } deriving Show
 newtype PlanTrialDays = PlanTrialDays { unPlanTrialDays :: Int } deriving Show
 
 -- | Creates a 'Plan' in the Stripe system.
-createPlan :: MonadIO m => Plan -> Maybe PlanTrialDays -> StripeT m ()
-createPlan p mtd = query_ (planRq []) { sMethod = POST, sData = fdata }
+createPlan :: MonadIO m => Plan -> StripeT m ()
+createPlan p = query_ (planRq []) { sMethod = POST, sData = fdata }
     where
-        fdata   = maybe pdata ((:pdata) . trialKV) mtd
-        trialKV = (,) "trial_period_days" . show . unPlanTrialDays
+        fdata   = pdata ++ optionalArgs odata
         pdata   = [ ("id",       unPlanId $ planId p)
                   , ("amount",   show . unAmount  $ planAmount p)
                   , ("interval", fromPlanInterval $ planInterval p)
                   , ("name",     planName p)
                   , ("currency", unCurrency $ planCurrency p)
+                  ]
+        odata   = [ ( "trial_period_days"
+                    , show . unPlanTrialDays <$> planTrialDays p
+                    )
                   ]
 
 -- | Retrieves a specific 'Plan' based on its 'PlanId'.
@@ -117,10 +124,11 @@ toPlanInterval p = case map toLower p of
 -- | Attempts to parse JSON into a 'Plan'.
 instance JSON Plan where
     readJSON (JSObject c) =
-        Plan `liftM` (return . planId         =<< jGet c "id")
-                `ap` (return . Amount         =<< jGet c "amount")
-                `ap` (return . toPlanInterval =<< jGet c "interval")
+        Plan `liftM` (PlanId         <$> jGet c "id")
+                `ap` (Amount         <$> jGet c "amount")
+                `ap` (toPlanInterval <$> jGet c "interval")
                 `ap` jGet c "name"
-                `ap` (return . Currency       =<< jGet c "currency")
+                `ap` (Currency       <$> jGet c "currency")
+                `ap` ((PlanTrialDays <$>) <$> mjGet c "trial_period_days")
     readJSON _ = Error "Unable to read Stripe plan."
     showJSON _ = undefined
