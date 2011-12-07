@@ -11,6 +11,16 @@ yet. Try it thoroughly and let me know if you
 [find any bugs](https://github.com/michaelschade/hs-stripe/issues) or
 [have any improvements](http://help.github.com/send-pull-requests/).
 
+Installation
+============
+
+Installation is simple. If you have [cabal](http://www.haskell.org/cabal/)
+installed, just run:
+
+    cabal install stripe
+
+and you'll be on your way!
+
 Example Usage
 =============
 
