@@ -10,8 +10,8 @@ Maintainer:          Michael Schade <michael@spearheaddev.com>
 Copyright:           (c) 2011 Spearhead Development, L.L.C.
 Category:            Web
 Build-type:          Simple
-Extra-source-files:  README
-Cabal-version:       >=1.2
+Extra-source-files:  README.mkd
+Cabal-version:       >=1.6
 
 Library
   -- Modules exported by the library.
