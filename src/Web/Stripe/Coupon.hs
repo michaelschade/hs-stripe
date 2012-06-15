@@ -20,17 +20,20 @@ module Web.Stripe.Coupon
     ) where
 
 import Control.Applicative  ( (<$>) )
-import Control.Monad        ( liftM, ap )
+import Control.Monad        ( mzero )
 import Control.Monad.Error  ( MonadIO, throwError, strMsg )
 import Data.Char            ( toLower )
 import Network.HTTP.Types   ( StdMethod(..) )
-import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
-                            , resultToEither, valFromObj
-                            )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
+import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
                             , query, query_, runStripeT
                             )
-import Web.Stripe.Utils     ( Count(..), Offset(..), jGet, mjGet, optionalArgs )
+import Web.Stripe.Utils     ( Count(..), Offset(..),  optionalArgs, valFromRawJson
+                            , stringToByteString, showByteString)
+import Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), parseJSON)
+import qualified Data.ByteString.Lazy   as BL
+import qualified Data.Text              as T 
+import qualified Data.ByteString        as B
+import           Data.Aeson.Types (parseMaybe)
 
 ----------------
 -- Data Types --
@@ -44,7 +47,7 @@ data Coupon = Coupon
     } deriving Show
 
 -- | Represents the identifier for a given 'Coupon' in the Stripe system.
-newtype CpnId = CpnId { unCpnId :: String } deriving Show
+newtype CpnId = CpnId { unCpnId :: T.Text } deriving Show
 
 -- | Represents the duration of a coupon. If an interval identifier is not
 --   known, 'UnknownDuration' is used to carry the original identifier supplied
@@ -69,15 +72,19 @@ newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving Show
 newtype CpnRedeemBy = CpnRedeemBy { unCpnRedeemBy :: Int } deriving Show
 
 -- | Creates a 'Coupon' in the Stripe system.
-createCoupon :: MonadIO m => Coupon -> Maybe CpnMaxRedeems -> Maybe CpnRedeemBy
-                          -> StripeT m ()
+createCoupon 
+    :: MonadIO m 
+    => Coupon 
+    -> Maybe CpnMaxRedeems 
+    -> Maybe CpnRedeemBy
+    -> StripeT m ()
 createCoupon c mmr mrb = query_ (cpnRq []) { sMethod = POST, sData = fdata }
     where
         fdata = poff:cpnDurationKV (cpnDuration c) ++ optionalArgs odata
-        poff  = ("percent_off", show . unCpnPercentOff . cpnPercentOff $ c)
-        odata = [ ("id",              unCpnId <$> cpnId c)
-                , ("max_redemptions", show . unCpnMaxRedeems <$> mmr)
-                , ("redeem_by",       show . unCpnRedeemBy <$> mrb)
+        poff  = ("percent_off", showByteString . unCpnPercentOff . cpnPercentOff $ c)
+        odata = [ ("id", (stringToByteString . T.unpack . unCpnId) <$> cpnId c)
+                , ("max_redemptions", showByteString . unCpnMaxRedeems <$> mmr)
+                , ("redeem_by",       showByteString . unCpnRedeemBy <$> mrb)
                 ]
 
 -- | Retrieves a specific 'Coupon' based on its 'CpnId'.
@@ -92,12 +99,13 @@ getCoupon (CpnId cid) = return . snd =<< query (cpnRq [cid])
 getCoupons :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Coupon]
 getCoupons mc mo = do
     (_, rsp) <- query (cpnRq []) { sQString = qs }
-    either err return . resultToEither . valFromObj "data" $ rsp
+    wrapper <- maybe err return . valFromRawJson "data" $ rsp
+    maybe err return $ parseMaybe parseJSON wrapper
     where
         qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
                              , ("offset", show . unOffset <$> mo)
                              ]
-        err _ = throwError $ strMsg "Unable to parse coupon list."
+        err = throwError $ strMsg "Unable to parse coupon list."
 
 -- | Deletes a 'Coupon' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.
@@ -110,22 +118,23 @@ delCoupon  = handleCpnId . cpnId
 -- | Deletes a 'Coupon', identified by its 'CpnId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCouponById :: MonadIO m => CpnId -> StripeT m Bool
-delCouponById (CpnId cid) = query (cpnRq [cid]) { sMethod = DELETE } >>=
-    either err return . resultToEither . valFromObj "deleted" . snd
-    where err _ = throwError $ strMsg "Unable to parse coupon delete."
+delCouponById (CpnId cid) = query (cpnRq [cid]) { sMethod = DELETE } >>= \rsp -> do
+    wrapper <- maybe err return . valFromRawJson "deleted" $ snd rsp
+    maybe err return $ parseMaybe parseJSON wrapper
+    where err = throwError $ strMsg "Unable to parse coupon delete."
 
--- | Convenience function to create a 'SRequest' specific to coupon-related
+-- | Convenience function to create a 'StripeRequest' specific to coupon-related
 --   actions.
-cpnRq :: [String] -> SRequest
+cpnRq :: [T.Text] -> StripeRequest
 cpnRq pcs = baseSReq { sDestination = "coupons":pcs }
 
 -- | Returns a list of key-value pairs representing duration specifications for
 --   use as input in the Stripe API.
-cpnDurationKV :: CpnDuration -> [ (String, String) ]
-cpnDurationKV d@(Repeating m) = [ ("duration",           fromCpnDuration d)
-                                , ("duration_in_months", show m)
+cpnDurationKV :: CpnDuration -> [ (B.ByteString, B.ByteString) ]
+cpnDurationKV d@(Repeating m) = [ ("duration", stringToByteString $           fromCpnDuration d)
+                                , ("duration_in_months", showByteString m)
                                 ]
-cpnDurationKV d               = [ ("duration", fromCpnDuration d) ]
+cpnDurationKV d               = [ ("duration", stringToByteString $ fromCpnDuration d) ]
 
 ------------------
 -- JSON Parsing --
@@ -151,12 +160,11 @@ toCpnDuration d (Just ms) = case map toLower d of
     _           -> UnknownDuration d
 
 -- | Attempts to parse JSON into a 'Coupon'.
-instance JSON Coupon where
-    readJSON (JSObject c) = do
-        drn  <- jGet  c "duration"
-        drns <- mjGet c "duration_in_months"
-        Coupon `liftM` (return . Just . CpnId  =<< jGet c "id")
-                  `ap` return (toCpnDuration drn drns)
-                  `ap` (return . CpnPercentOff =<< jGet  c "percent_off")
-    readJSON _ = Error "Unable to read Stripe coupon."
-    showJSON _ = undefined
+instance FromJSON Coupon where
+    parseJSON (Object c) = do
+        drn  <- c .: "duration"
+        drns <- c .: "duration_in_months"
+        cId  <- c .:? "id"
+        pctOff <- c .: "percent_off"
+        return $ Coupon (CpnId <$> cId) (toCpnDuration drn drns) (CpnPercentOff pctOff)
+    parseJSON _ = mzero
