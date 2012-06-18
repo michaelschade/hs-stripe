@@ -26,7 +26,7 @@ import Control.Monad.Error  ( Error, MonadIO, MonadError, throwError, strMsg )
 import Data.Maybe           ( fromMaybe )
 import Web.Stripe.Card      ( Card, RequestCard, rCardKV )
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..)
-                            , StdMethod(..), baseSReq, query, runStripeT
+                            , StdMethod(..), baseSReq, queryData, query, runStripeT
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Plan      ( PlanId(..) )
@@ -104,14 +104,11 @@ getCustomer (CustomerId cid) =
 --      * page of results, via 'Offset'.
 getCustomers :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Customer]
 getCustomers mc mo = do
-    (_, rsp) <- query $ (customerRq []) { sQString = qstring }
-    wrapper <- maybe err return $ valFromRawJson "data" rsp
-    maybe err return $ parseMaybe parseJSON wrapper
+    queryData ((customerRq []) { sQString = qstring }) >>= return . snd
     where
         qstring = optionalArgs  [ ("count",  show . unCount  <$> mc)
                                 , ("offset", show . unOffset <$> mo)
                                 ]
-        err     = throwError $ strMsg "Unable to parse customer list."
 
 -- | Deletes a 'Customer' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.
@@ -121,11 +118,8 @@ delCustomer  = delCustomerById . custId
 -- | Deletes a 'Customer', identified by its 'CustomerId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCustomerById :: MonadIO m => CustomerId -> StripeT m Bool
-delCustomerById (CustomerId cid) = query req >>= \rsp -> do
-    wrapper <- maybe err return . valFromRawJson "data" $ snd rsp
-    maybe err return $ parseMaybe parseJSON wrapper
+delCustomerById (CustomerId cid) = queryData req >>= return . snd
     where
-        err     = throwError $ strMsg "Unable to parse customer delete."
         req     = (customerRq [cid]) { sMethod = DELETE }
 
 -- | Convenience function to create a 'StripeRequest' specific to customer-related

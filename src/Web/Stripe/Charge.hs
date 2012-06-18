@@ -30,7 +30,7 @@ import           Control.Monad.Error  ( MonadIO, throwError, strMsg )
 import           Web.Stripe.Card      ( Card, RequestCard, rCardKV )
 import           Web.Stripe.Customer  ( Customer(..), CustomerId(..) )
 import           Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                                      , query, runStripeT
+                                      , query, runStripeT, queryData
                                       )
 import           Web.Stripe.Token     ( Token(..), TokenId(..) )
 import           Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
@@ -101,7 +101,7 @@ charge :: MonadIO m => [(B.ByteString, B.ByteString)] -> Amount -> Currency
 charge adata a c mcd =
     snd `liftM` query (chargeRq []) { sMethod = POST, sData = fdata }
     where
-        fdata = head (optionalArgs odata) : adata ++ bdata
+        fdata = (optionalArgs odata) ++ adata ++ bdata
         odata = [ ("description", textToByteString . unDescription <$> mcd) ]
         bdata = [ ("amount",      showByteString . unAmount $ a)
                 , ("currency",    textToByteString $ unCurrency c)
@@ -119,16 +119,14 @@ getCharge (ChargeId cid) = snd `liftM` query (chargeRq [cid])
 --      * 'Customer'.
 getCharges :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
            -> StripeT m [Charge]
-getCharges mcid mc mo = do
-    (_, rsp) <- query $ (chargeRq []) { sQString = optionalArgs oqs }
-    wrapper <- maybe err return $ valFromRawJson "data" rsp
-    maybe err return $ parseMaybe parseJSON wrapper
-    where
-        oqs   = [ ("count",     show . unCount  <$> mc)
-                , ("offset",    show . unOffset <$> mo)
-                , ("customer",  T.unpack . unCustomerId    <$> mcid)
-                ]
-        err   = throwError $ strMsg "Unable to parse charge list."
+getCharges mcid mc mo = 
+    queryData ((chargeRq []) { sQString = optionalArgs oqs }) >>= return . snd
+  where
+    oqs   = [ ("count",     show . unCount  <$> mc)
+            , ("offset",    show . unOffset <$> mo)
+            , ("customer",  T.unpack . unCustomerId    <$> mcid)
+            ]
+        -- err   = throwError $ strMsg "Unable to parse charge list."
 
 -- | Requests that Stripe issue a partial refund to a specific 'Charge' for a
 --   particular 'Amount'.

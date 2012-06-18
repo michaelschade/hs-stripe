@@ -36,4 +36,5 @@ Library
                         , bytestring    >= 0.9
                         , mtl           >= 2.1
                         , utf8-string   >= 0.3.7
-    extensions:         OverloadedStrings
+    extensions:         OverloadedStrings, TupleSections
+                      

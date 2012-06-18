@@ -25,7 +25,7 @@ import Control.Monad.Error  ( MonadIO, throwError, strMsg )
 import Data.Char            ( toLower )
 import Network.HTTP.Types   ( StdMethod(..) )
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                            , query, query_, runStripeT
+                            , queryData, query, query_, runStripeT
                             )
 import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..), Offset(..) 
                             , valFromRawJson , optionalArgs
@@ -87,14 +87,11 @@ getPlan (PlanId pid) = return . snd =<< query (planRq [pid])
 --      * page of results, via 'Offset'.
 getPlans :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Plan]
 getPlans mc mo = do
-    (_, rsp) <- query (planRq []) { sQString = qs }
-    wrapper <- maybe err return . valFromRawJson "data" $ rsp
-    maybe err return $ parseMaybe parseJSON wrapper
+    queryData (planRq []) { sQString = qs } >>= return . snd
   where
     qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
                          , ("offset", show . unOffset <$> mo)
                          ]
-    err = throwError $ strMsg "Unable to parse plan list."
 
 -- | Deletes a 'Plan' if it exists. If it does not, an 'InvalidRequestError'
 --   will be thrown indicating this.
@@ -104,11 +101,8 @@ delPlan  = delPlanById . planId
 -- | Deletes a 'Plan', identified by its 'PlanId', if it exists.  If it does
 --   not, an 'InvalidRequestError' will be thrown indicating this.
 delPlanById :: MonadIO m => PlanId -> StripeT m Bool
-delPlanById (PlanId pid) = query req >>= \rsp -> do 
-    wrapper <- maybe err return . valFromRawJson "data" $ snd rsp
-    maybe err return $ parseMaybe parseJSON wrapper
+delPlanById (PlanId pid) = queryData req >>= return . snd
     where
-        err     = throwError $ strMsg "Unable to parse plan delete."
         req     = (planRq [pid]) { sMethod = DELETE }
 
 -- | Convenience function to create a 'StripeRequest' specific to plan-related

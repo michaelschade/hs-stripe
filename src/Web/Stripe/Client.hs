@@ -14,6 +14,7 @@ module Web.Stripe.Client
     , runStripeT
     , baseSReq
     , query
+    , queryData
     , query_
 
     {- Re-Export -}
@@ -43,7 +44,8 @@ import           Network.HTTP.Conduit
 import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), decode')
 import           Data.Aeson.Types (parseMaybe)
 import qualified Data.HashMap.Lazy      as HML
-
+import           Web.Stripe.Utils (textToByteString)
+import           System.IO (putStrLn)
 
 ------------------------
 -- General Data T\ypes --
@@ -194,9 +196,19 @@ query' :: MonadIO m => StripeRequest -> StripeT m (StripeResponseCode, BL.ByteSt
 query' sReq = do
     cfg  <- get
     -- let opts' = opts $ caFile cfg
-    req <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
+    req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
+    let req = req' {checkStatus = \_ _ -> Nothing}
+    liftIO $ print "req debug"
+    liftIO $ print $ host req
+    liftIO $ print $ port req
+    liftIO $ print $ secure req
+    liftIO $ print $ path req
+    liftIO $ print $ queryString req
     rsp  <- liftIO $ withManager (\mgr -> httpLbs req mgr)
     code <- toCode (responseStatus rsp) (responseBody rsp)
+    liftIO $ putStrLn $ "---- response:"
+    liftIO $ print $ responseBody rsp
+    liftIO $ print $ (decode' $ responseBody rsp :: Maybe Value)
     return (code, responseBody rsp)
     --  where
     --      opts caf = CurlCAInfo caf : CurlFailOnError False : queryOptions req
@@ -212,10 +224,21 @@ query' sReq = do
 -- > runStripeT conf $
 -- >    query baseSReq { sDestination = ["charges"] }
 query :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
-query req = query' req >>= \(code, ans) -> (,) code `liftM` decodeJ ans
-    where
-        decodeJ   = tryMaybe . decode'
-        tryMaybe  = maybe (throwError $ strMsg "JSON Decoding Error") return
+query req = query' req >>= \(code, ans) -> do
+    maybe (throwError $ strMsg "could not parse JSON") (return . (code, )) $ decode' ans
+
+-- | same as `query` but pulls out the value inside a data field and returns that
+queryData :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
+queryData req = query' req >>= \(code, ans) -> do
+    val <- maybe (throwError $ strMsg "could not parse JSON") return $ decode' ans
+    case val of 
+        Object o -> do
+            objVal <- maybe (throwError $ strMsg "no data in json" ) return $
+                            HML.lookup "data" o
+            obj <- maybe (throwError $ strMsg "parsed JSON didn't contain object") return $
+                        parseMaybe parseJSON objVal
+            return (code, obj)
+        _ -> throwError $ strMsg "JSON was not object"
 
 -- | Acts just like 'query', but on success, throws away the response. Errors
 --   contacting the Stripe API will still be reported.
@@ -231,15 +254,16 @@ setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeader
 --   make an authenticated query to the Stripe server.
 --   _TODO there is lots of sloppy Text <-> String stuff here.. should fix
 prepRq :: Monad m => SConfig -> StripeRequest -> Maybe (Request m)
-prepRq cfg sReq = flip fmap mReq $ \req -> 
-    (addBodyUa req) { queryString = renderQuery True qs 
+prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $ 
+    (addBodyUa req) { queryString = renderQuery False qs 
                     , method = renderStdMethod $ sMethod sReq
                     }
   where
-    k = unAPIKey $ key cfg
+    k = textToByteString . unAPIKey $ key cfg
+    p = textToByteString ""
     addBodyUa = urlEncodedBody (sData sReq) . setUserAgent "hs-string/0.2 http-conduit" 
     mReq = parseUrl . T.unpack $ T.concat 
-            [ "https://", k, ":@api.stripe.com:443/v1/"
+            [ "https://api.stripe.com:443/v1/"
             , T.intercalate "/" (sDestination sReq) ] 
     qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString sReq
 

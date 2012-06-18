@@ -25,7 +25,7 @@ import Control.Monad.Error  ( MonadIO, throwError, strMsg )
 import Data.Char            ( toLower )
 import Network.HTTP.Types   ( StdMethod(..) )
 import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                            , query, query_, runStripeT
+                            , queryData, query, query_, runStripeT
                             )
 import Web.Stripe.Utils     ( Count(..), Offset(..),  optionalArgs, valFromRawJson
                             , textToByteString, showByteString)
@@ -97,14 +97,11 @@ getCoupon (CpnId cid) = return . snd =<< query (cpnRq [cid])
 --      * page of results, via 'Offset'.
 getCoupons :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Coupon]
 getCoupons mc mo = do
-    (_, rsp) <- query (cpnRq []) { sQString = qs }
-    wrapper <- maybe err return . valFromRawJson "data" $ rsp
-    maybe err return $ parseMaybe parseJSON wrapper
+    queryData (cpnRq []) { sQString = qs } >>= return . snd
     where
         qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
                              , ("offset", show . unOffset <$> mo)
                              ]
-        err = throwError $ strMsg "Unable to parse coupon list."
 
 -- | Deletes a 'Coupon' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.
@@ -118,6 +115,7 @@ delCoupon  = handleCpnId . cpnId
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCouponById :: MonadIO m => CpnId -> StripeT m Bool
 delCouponById (CpnId cid) = query (cpnRq [cid]) { sMethod = DELETE } >>= \rsp -> do
+    error "delCoupon broken " -- _TODO
     wrapper <- maybe err return . valFromRawJson "deleted" $ snd rsp
     maybe err return $ parseMaybe parseJSON wrapper
     where err = throwError $ strMsg "Unable to parse coupon delete."
