@@ -28,9 +28,8 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseS
                             , query, query_, runStripeT
                             )
 import Web.Stripe.Utils     ( Count(..), Offset(..),  optionalArgs, valFromRawJson
-                            , stringToByteString, showByteString)
+                            , textToByteString, showByteString)
 import Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), parseJSON)
-import qualified Data.ByteString.Lazy   as BL
 import qualified Data.Text              as T 
 import qualified Data.ByteString        as B
 import           Data.Aeson.Types (parseMaybe)
@@ -56,7 +55,7 @@ data CpnDuration
     = Once
     | Repeating Int -- ^ Field specifies how long (months) discount is in effect
     | Forever
-    | UnknownDuration String
+    | UnknownDuration T.Text
     deriving Show
 
 -- | Represents the percent off that is applied by a coupon. This must be
@@ -82,7 +81,7 @@ createCoupon c mmr mrb = query_ (cpnRq []) { sMethod = POST, sData = fdata }
     where
         fdata = poff:cpnDurationKV (cpnDuration c) ++ optionalArgs odata
         poff  = ("percent_off", showByteString . unCpnPercentOff . cpnPercentOff $ c)
-        odata = [ ("id", (stringToByteString . T.unpack . unCpnId) <$> cpnId c)
+        odata = [ ("id", (textToByteString . unCpnId) <$> cpnId c)
                 , ("max_redemptions", showByteString . unCpnMaxRedeems <$> mmr)
                 , ("redeem_by",       showByteString . unCpnRedeemBy <$> mrb)
                 ]
@@ -131,10 +130,10 @@ cpnRq pcs = baseSReq { sDestination = "coupons":pcs }
 -- | Returns a list of key-value pairs representing duration specifications for
 --   use as input in the Stripe API.
 cpnDurationKV :: CpnDuration -> [ (B.ByteString, B.ByteString) ]
-cpnDurationKV d@(Repeating m) = [ ("duration", stringToByteString $           fromCpnDuration d)
+cpnDurationKV d@(Repeating m) = [ ("duration", textToByteString $           fromCpnDuration d)
                                 , ("duration_in_months", showByteString m)
                                 ]
-cpnDurationKV d               = [ ("duration", stringToByteString $ fromCpnDuration d) ]
+cpnDurationKV d               = [ ("duration", textToByteString $ fromCpnDuration d) ]
 
 ------------------
 -- JSON Parsing --
@@ -142,7 +141,7 @@ cpnDurationKV d               = [ ("duration", stringToByteString $ fromCpnDurat
 
 -- | Converts a 'CpnDuration' to a string for input into the Stripe API. For
 --   'UnknownDuration's, the original interval code will be used.
-fromCpnDuration :: CpnDuration -> String
+fromCpnDuration :: CpnDuration -> T.Text
 fromCpnDuration Once                = "once"
 fromCpnDuration (Repeating _)       = "repeating"
 fromCpnDuration Forever             = "forever"
@@ -150,12 +149,12 @@ fromCpnDuration (UnknownDuration d) = d
 
 -- | Convert a string to a 'CpnDuration'. Used for parsing output from the
 --   Stripe API.
-toCpnDuration  :: String -> Maybe Int -> CpnDuration
-toCpnDuration d Nothing = case map toLower d of
+toCpnDuration  :: T.Text -> Maybe Int -> CpnDuration
+toCpnDuration d Nothing = case T.map toLower d of
     "once"      -> Once
     "forever"   -> Forever
     _           -> UnknownDuration d
-toCpnDuration d (Just ms) = case map toLower d of
+toCpnDuration d (Just ms) = case T.map toLower d of
     "repeating" -> Repeating ms
     _           -> UnknownDuration d
 

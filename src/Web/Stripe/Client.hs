@@ -27,7 +27,6 @@ import Control.Monad.Error  ( Error, ErrorT, MonadIO, MonadError, runErrorT
 import Control.Monad.State  ( MonadState, StateT, runStateT, get )
 import Control.Monad.Trans  ( liftIO )
 import Data.Char            ( toLower )
-import Data.List            ( intercalate )
 import Data.Text            ( Text )
         -- _TMP import Network.Curl         ( CurlOption(..), CurlResponse, CurlResponse_(..)
         -- _TMP                             , curlGetResponse_, method_GET, method_HEAD
@@ -41,7 +40,7 @@ import qualified Data.ByteString.Lazy   as BL
 import qualified Data.ByteString        as B
 import qualified Data.Text              as T
 import           Network.HTTP.Conduit
-import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), Object, decode')
+import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), decode')
 import           Data.Aeson.Types (parseMaybe)
 import qualified Data.HashMap.Lazy      as HML
 
@@ -57,7 +56,7 @@ data SConfig = SConfig
     } deriving Show
 
 -- | A key used when authenticating to the Stripe API.
-newtype APIKey = APIKey { unAPIKey :: String } deriving Show
+newtype APIKey = APIKey { unAPIKey :: T.Text } deriving Show
 
 -- | This represents the possible successes that a connection to the Stripe
 --   API can encounter. For specificity, a success can be represented by other
@@ -240,7 +239,7 @@ prepRq cfg sReq = flip fmap mReq $ \req ->
     k = unAPIKey $ key cfg
     addBodyUa = urlEncodedBody (sData sReq) . setUserAgent "hs-string/0.2 http-conduit" 
     mReq = parseUrl . T.unpack $ T.concat 
-            [ "https://", T.pack k, ":@api.stripe.com:443/v1/"
+            [ "https://", k, ":@api.stripe.com:443/v1/"
             , T.intercalate "/" (sDestination sReq) ] 
     qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString sReq
 

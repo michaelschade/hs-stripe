@@ -20,24 +20,24 @@ module Web.Stripe.Customer
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>) )
-import Control.Monad        ( liftM, ap )
+import Control.Applicative  ( (<$>), (<*>))
+import Control.Monad        ( liftM, mzero )
 import Control.Monad.Error  ( Error, MonadIO, MonadError, throwError, strMsg )
 import Data.Maybe           ( fromMaybe )
-import Text.JSON            ( Result(..), JSON(..), JSValue(..), resultToEither
-                            , valFromObj
-                            )
 import Web.Stripe.Card      ( Card, RequestCard, rCardKV )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..)
+import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..)
                             , StdMethod(..), baseSReq, query, runStripeT
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Plan      ( PlanId(..) )
 import Web.Stripe.Utils     ( Count(..), Offset(..), Description(..)
-                            , UTCTime(..), fromSeconds, jGet, mjGet
-                            , optionalArgs
+                            , UTCTime(..), valFromRawJson
+                            , optionalArgs, textToByteString, showByteString
                             )
 
+import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..))
+import           Data.Aeson.Types (parseMaybe)
+import qualified Data.Text   as T
 ----------------
 -- Data Types --
 ----------------
@@ -53,10 +53,10 @@ data Customer = Customer
     } deriving Show
 
 -- | Represents a 'Customer'\'s ID in the Stripe system.
-newtype CustomerId = CustomerId { unCustomerId :: String } deriving Show
+newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving Show
 
 -- | Represents a standard email address.
-newtype Email = Email { unEmail :: String } deriving Show
+newtype Email = Email { unEmail :: T.Text } deriving Show
 
 -- | Create a new 'Customer' in the Stripe system.
 createCustomer  :: MonadIO m => Maybe RequestCard -> Maybe CpnId -> Maybe Email
@@ -66,11 +66,11 @@ createCustomer mrc mcid me md mpid mtime =
     snd `liftM` query (customerRq []) { sMethod = POST, sData = fdata }
     where
         fdata = fromMaybe [] (rCardKV <$> mrc) ++ optionalArgs odata
-        odata = [ ("coupon",        unCpnId         <$> mcid)
-                , ("email",         unEmail         <$> me)
-                , ("description",   unDescription   <$> md)
-                , ("plan",          unPlanId        <$> mpid)
-                , ("trial_end",     show            <$> mtime)
+        odata = [ ("coupon",        textToByteString . unCpnId         <$> mcid)
+                , ("email",         textToByteString . unEmail         <$> me)
+                , ("description",   textToByteString . unDescription   <$> md)
+                , ("plan",          textToByteString . unPlanId        <$> mpid)
+                , ("trial_end",     showByteString  <$> mtime)
                 ]
 
 -- | Update an existing 'Customer' in the Stripe system.
@@ -87,9 +87,9 @@ updateCustomerById (CustomerId cid) mrc mcid me md =
     snd `liftM` query (customerRq [cid]) { sMethod = POST, sData = fdata }
     where
         fdata = fromMaybe [] (rCardKV <$> mrc) ++ optionalArgs odata
-        odata = [ ("coupon",        unCpnId         <$> mcid)
-                , ("email",         unEmail         <$> me)
-                , ("description",   unDescription   <$> md)
+        odata = [ ("coupon",      textToByteString . unCpnId         <$> mcid)
+                , ("email",       textToByteString . unEmail         <$> me)
+                , ("description", textToByteString . unDescription   <$> md)
                 ]
 
 -- | Retrieves a specific 'Customer' based on its 'CustomerId'.
@@ -105,12 +105,13 @@ getCustomer (CustomerId cid) =
 getCustomers :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Customer]
 getCustomers mc mo = do
     (_, rsp) <- query $ (customerRq []) { sQString = qstring }
-    either err return . resultToEither . valFromObj "data" $ rsp
+    wrapper <- maybe err return $ valFromRawJson "data" rsp
+    maybe err return $ parseMaybe parseJSON wrapper
     where
         qstring = optionalArgs  [ ("count",  show . unCount  <$> mc)
                                 , ("offset", show . unOffset <$> mo)
                                 ]
-        err _   = throwError $ strMsg "Unable to parse customer list."
+        err     = throwError $ strMsg "Unable to parse customer list."
 
 -- | Deletes a 'Customer' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.
@@ -120,15 +121,16 @@ delCustomer  = delCustomerById . custId
 -- | Deletes a 'Customer', identified by its 'CustomerId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCustomerById :: MonadIO m => CustomerId -> StripeT m Bool
-delCustomerById (CustomerId cid) = query req >>=
-    either err return . resultToEither . valFromObj "deleted" . snd
+delCustomerById (CustomerId cid) = query req >>= \rsp -> do
+    wrapper <- maybe err return . valFromRawJson "data" $ snd rsp
+    maybe err return $ parseMaybe parseJSON wrapper
     where
-        err _   = throwError $ strMsg "Unable to parse customer delete."
+        err     = throwError $ strMsg "Unable to parse customer delete."
         req     = (customerRq [cid]) { sMethod = DELETE }
 
--- | Convenience function to create a 'SRequest' specific to customer-related
+-- | Convenience function to create a 'StripeRequest' specific to customer-related
 --   actions.
-customerRq :: [String] -> SRequest
+customerRq :: [T.Text] -> StripeRequest
 customerRq pcs = baseSReq { sDestination = "customers":pcs }
 
 ------------------
@@ -136,13 +138,12 @@ customerRq pcs = baseSReq { sDestination = "customers":pcs }
 ------------------
 
 -- | Attempts to parse JSON into a 'Customer'.
-instance JSON Customer where
-    readJSON (JSObject c) =
-        Customer `liftM` (CustomerId   <$> jGet c "id")
-                    `ap` (Email        <$> jGet c "email")
-                    `ap` ((Description <$>) <$> mjGet c "description")
-                    `ap` jGet  c "livemode"
-                    `ap` (fromSeconds  <$> jGet  c "created")
-                    `ap` mjGet c "active_card"
-    readJSON _ = Error "Unable to read Stripe customer."
-    showJSON _ = undefined
+instance FromJSON Customer where
+    parseJSON (Object o) = Customer 
+        <$> (CustomerId   <$> o .: "id")
+        <*> (Email        <$> o .: "email")
+        <*> ((fmap . fmap) Description  (o .:? "description"))
+        <*> o .: "livemode"
+        <*> o .: "created"
+        <*> o .:? "active_card"
+    parseJSON _ = mzero
