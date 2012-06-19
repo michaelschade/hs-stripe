@@ -96,12 +96,11 @@ getCoupon (CpnId cid) = return . snd =<< query (cpnRq [cid])
 --      * number of charges, via 'Count' and
 --      * page of results, via 'Offset'.
 getCoupons :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Coupon]
-getCoupons mc mo = do
-    queryData (cpnRq []) { sQString = qs } >>= return . snd
-    where
-        qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
-                             , ("offset", show . unOffset <$> mo)
-                             ]
+getCoupons mc mo = queryData (cpnRq []) { sQString = qs } >>= return . snd
+  where
+    qs = optionalArgs [ ("count",  show . unCount  <$> mc)
+                      , ("offset", show . unOffset <$> mo)
+                      ]
 
 -- | Deletes a 'Coupon' if it exists. If it does not, an
 --   'InvalidRequestError' will be thrown indicating this.
@@ -114,11 +113,7 @@ delCoupon  = handleCpnId . cpnId
 -- | Deletes a 'Coupon', identified by its 'CpnId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCouponById :: MonadIO m => CpnId -> StripeT m Bool
-delCouponById (CpnId cid) = query (cpnRq [cid]) { sMethod = DELETE } >>= \rsp -> do
-    error "delCoupon broken " -- _TODO
-    wrapper <- maybe err return . valFromRawJson "deleted" $ snd rsp
-    maybe err return $ parseMaybe parseJSON wrapper
-    where err = throwError $ strMsg "Unable to parse coupon delete."
+delCouponById (CpnId cid) = queryData (cpnRq [cid]) { sMethod = DELETE } >>= return . snd
 
 -- | Convenience function to create a 'StripeRequest' specific to coupon-related
 --   actions.
