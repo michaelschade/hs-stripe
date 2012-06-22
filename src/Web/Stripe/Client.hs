@@ -198,17 +198,17 @@ query' sReq = do
     -- let opts' = opts $ caFile cfg
     req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
     let req = req' {checkStatus = \_ _ -> Nothing}
-    liftIO $ print "req debug"
-    liftIO $ print $ host req
-    liftIO $ print $ port req
-    liftIO $ print $ secure req
-    liftIO $ print $ path req
-    liftIO $ print $ queryString req
+    -- liftIO $ print "req debug"
+    -- liftIO $ print $ host req
+    -- liftIO $ print $ port req
+    -- liftIO $ print $ secure req
+    -- liftIO $ print $ path req
+    -- liftIO $ print $ queryString req
     rsp  <- liftIO $ withManager (\mgr -> httpLbs req mgr)
     code <- toCode (responseStatus rsp) (responseBody rsp)
-    liftIO $ putStrLn $ "---- response:"
-    liftIO $ print $ responseBody rsp
-    liftIO $ print $ (decode' $ responseBody rsp :: Maybe Value)
+    -- liftIO $ putStrLn $ "---- response:"
+    -- liftIO $ print $ responseBody rsp
+    -- liftIO $ print $ (decode' $ responseBody rsp :: Maybe Value)
     return (code, responseBody rsp)
     --  where
     --      opts caf = CurlCAInfo caf : CurlFailOnError False : queryOptions req
