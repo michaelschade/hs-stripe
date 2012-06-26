@@ -204,6 +204,7 @@ query' sReq = do
     -- liftIO $ print $ secure req
     -- liftIO $ print $ path req
     -- liftIO $ print $ queryString req
+    -- _TODO we should be able to pass in a manager rather thanusing the default manager
     rsp  <- liftIO $ withManager (\mgr -> httpLbs req mgr)
     code <- toCode (responseStatus rsp) (responseBody rsp)
     -- liftIO $ putStrLn $ "---- response:"
