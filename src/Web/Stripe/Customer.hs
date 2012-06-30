@@ -2,6 +2,7 @@ module Web.Stripe.Customer
     ( Customer(..)
     , CustomerId(..)
     , Email(..)
+    , CardDetails(..)
     , createCustomer
     , updateCustomer
     , updateCustomerById
@@ -33,6 +34,7 @@ import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..)
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Plan      ( PlanId(..) )
+import Web.Stripe.Token     ( TokenId(..) )
 import Web.Stripe.Utils     ( Count(..), Offset(..), Description(..)
                             , UTCTime(..), fromSeconds, jGet, mjGet
                             , optionalArgs
@@ -58,20 +60,26 @@ newtype CustomerId = CustomerId { unCustomerId :: String } deriving Show
 -- | Represents a standard email address.
 newtype Email = Email { unEmail :: String } deriving Show
 
+data CardDetails = CDCard RequestCard | CDToken TokenId deriving Show
+
 -- | Create a new 'Customer' in the Stripe system.
-createCustomer  :: MonadIO m => Maybe RequestCard -> Maybe CpnId -> Maybe Email
+createCustomer  :: MonadIO m => Maybe CardDetails -> Maybe CpnId -> Maybe Email
                 -> Maybe Description -> Maybe PlanId -> Maybe Int
                 -> StripeT m Customer
-createCustomer mrc mcid me md mpid mtime =
+createCustomer mcd mcid me md mpid mtime =
     snd `liftM` query (customerRq []) { sMethod = POST, sData = fdata }
     where
-        fdata = fromMaybe [] (rCardKV <$> mrc) ++ optionalArgs odata
+        fdata = fromMaybe [] (rCardDetailsKV <$> mcd) ++ optionalArgs odata
         odata = [ ("coupon",        unCpnId         <$> mcid)
                 , ("email",         unEmail         <$> me)
                 , ("description",   unDescription   <$> md)
                 , ("plan",          unPlanId        <$> mpid)
                 , ("trial_end",     show            <$> mtime)
                 ]
+
+rCardDetailsKV :: CardDetails -> [(String, String)]
+rCardDetailsKV (CDCard rc) = rCardKV rc
+rCardDetailsKV (CDToken tid) = [("card", unTokenId tid)]
 
 -- | Update an existing 'Customer' in the Stripe system.
 updateCustomer :: MonadIO m => Customer -> Maybe RequestCard -> Maybe CpnId
