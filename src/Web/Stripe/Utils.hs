@@ -5,22 +5,40 @@ module Web.Stripe.Utils
     , Description(..)
     , Offset(..)
     , optionalArgs
-    , jGet
-    , mjGet
-
+    , valFromRawJson
     {- Re-Export -}
     , UTCTime(..)
     , fromSeconds
     , toSeconds
+    , stringToByteString
+    , textToByteString
+    , showByteString
     ) where
 
 import Data.Time.Clock          ( UTCTime(..) )
-import Data.Time.Clock.POSIX    ( posixSecondsToUTCTime, utcTimeToPOSIXSeconds
-                                )
+import Data.Time.Clock.POSIX    ( posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import Data.Time.Format         ( ) -- imports Show instance for UTCTime
-import Text.JSON                ( Result(..), JSObject, JSON(..), JSValue(..)
-                                , resultToEither, valFromObj
-                                )
+
+import           Data.Aeson (decode, Value (..))
+import qualified Data.HashMap.Lazy      as HML
+import qualified Data.Text   as T 
+import qualified Data.ByteString.Lazy   as BL
+import qualified Data.ByteString        as B
+import qualified Codec.Binary.UTF8.String as CodecUtf8
+
+showByteString :: Show a => a -> B.ByteString
+showByteString = stringToByteString . show
+
+textToByteString :: T.Text -> B.ByteString
+textToByteString = B.pack . CodecUtf8.encode . T.unpack
+
+stringToByteString :: String -> B.ByteString
+stringToByteString = B.pack . CodecUtf8.encode
+
+valFromRawJson :: T.Text -> BL.ByteString -> Maybe Value
+valFromRawJson k rawJson = case decode rawJson of
+    Just (Object o) -> HML.lookup k o
+    _ -> Nothing
 
 -----------------------
 -- Common Data Types --
@@ -35,10 +53,10 @@ newtype Count = Count { unCount :: Int } deriving Show
 
 -- | Represents a currency (e.g., "usd") in the Stripe system. This is
 --   a 3-letter ISO code.
-newtype Currency = Currency { unCurrency :: String } deriving Show
+newtype Currency = Currency { unCurrency :: T.Text } deriving Show
 
 -- | Describes an object in the Stripe system.
-newtype Description = Description { unDescription :: String } deriving Show
+newtype Description = Description { unDescription :: T.Text } deriving Show
 
 -- | A positive integer that is an offset into the array of objects returned
 --   by the Stripe API.
@@ -64,16 +82,7 @@ toSeconds  = round . utcTimeToPOSIXSeconds
 --
 -- >>> optionalArgs [("k1", Just "supplied"), ("k2", Nothing)]
 -- [("k1","supplied")]
-optionalArgs :: [(String, Maybe String)] -> [(String, String)]
+optionalArgs :: [(a, Maybe a)] -> [(a, a)]
 optionalArgs []                 = []
 optionalArgs ((_, Nothing):xs)  = optionalArgs xs
 optionalArgs ((a, Just b):xs)   = (a, b):optionalArgs xs
-
--- | Convenience function to get a field from a given 'JSON' object.
-jGet :: JSON a => JSObject JSValue -> String -> Result a
-jGet  = flip valFromObj
-
--- | Attempts to retrieve a field from a given 'JSON' object, failing
---   gracefully with 'Nothing' if such a field is not found.
-mjGet :: JSON a => JSObject JSValue -> String -> Result (Maybe a)
-mjGet obj = return . either (\_ -> Nothing) Just . resultToEither . jGet obj

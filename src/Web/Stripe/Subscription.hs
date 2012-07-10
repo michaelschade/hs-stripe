@@ -15,21 +15,26 @@ module Web.Stripe.Subscription
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>) )
-import Control.Monad        ( liftM, ap )
+import Control.Monad        ( liftM, mzero )
 import Control.Monad.Error  ( MonadIO )
 import Data.Char            ( toLower )
 import Network.HTTP.Types   ( StdMethod(..) )
-import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject) )
 import Web.Stripe.Card      ( RequestCard, rCardKV )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
+import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
                             , query, runStripeT
                             )
 import Web.Stripe.Coupon    ( CpnId(..) )
 import Web.Stripe.Customer  ( CustomerId(..) )
 import Web.Stripe.Token     ( TokenId(..) )
 import Web.Stripe.Plan      ( Plan, PlanId(..) )
-import Web.Stripe.Utils     ( UTCTime(..), fromSeconds, jGet, optionalArgs )
+import Web.Stripe.Utils     ( UTCTime(..), fromSeconds,  optionalArgs
+                            , textToByteString, showByteString
+                            )
+
+import           Data.Aeson (FromJSON (..), (.:), Value (..))
+import           Control.Applicative  ( (<$>), (<*>))
+import qualified Data.Text              as T
+import qualified Data.ByteString        as B
 
 ------------------
 -- Subsriptions --
@@ -49,7 +54,7 @@ data Subscription = Subscription
 
 -- | Describes the various stages that a
 data SubStatus = Trialing | Active | PastDue | Unpaid | Canceled
-               | UnknownStatus String deriving Show
+               | UnknownStatus T.Text deriving Show
 
 -- | A boolean flag that determines whether or not to prorate switching plans
 --   during a billing cycle.
@@ -79,19 +84,19 @@ updateSubRCard  = updateSub . rCardKV
 updateSubToken :: MonadIO m => TokenId -> CustomerId -> PlanId -> Maybe CpnId
                -> Maybe SubProrate -> Maybe SubTrialEnd
                -> StripeT m Subscription
-updateSubToken (TokenId tid) = updateSub [("token", tid)]
+updateSubToken (TokenId tid) = updateSub [("token", textToByteString tid)]
 
 -- | Internal convenience function to update a 'Subscription'.
-updateSub :: MonadIO m => [(String, String)] -> CustomerId -> PlanId
+updateSub :: MonadIO m => [(B.ByteString, B.ByteString)] -> CustomerId -> PlanId
           -> Maybe CpnId -> Maybe SubProrate -> Maybe SubTrialEnd
           -> StripeT m Subscription
 updateSub sdata cid pid mcpnid mspr mste =
     snd `liftM` query (subRq cid []) { sMethod = POST, sData = fdata }
     where
-        fdata = ("plan", unPlanId pid) : sdata ++ optionalArgs odata
-        odata = [ ("coupon",    unCpnId              <$> mcpnid)
-                , ("prorate",   show . unSubProrate  <$> mspr)
-                , ("trial_end", show . unSubTrialEnd <$> mste)
+        fdata = ("plan", textToByteString $ unPlanId pid) : sdata ++ optionalArgs odata
+        odata = [ ("coupon",    textToByteString . unCpnId              <$> mcpnid)
+                , ("prorate",   showByteString . unSubProrate  <$> mspr)
+                , ("trial_end", showByteString . unSubTrialEnd <$> mste)
                 ]
 
 -- | Cancels the 'Subscription' associated with a 'Customer', identified by
@@ -100,11 +105,11 @@ cancelSub :: MonadIO m => CustomerId -> Maybe SubAtPeriodEnd
           -> StripeT m Subscription
 cancelSub cid mspe = snd `liftM`
     query (subRq cid []) { sMethod = DELETE, sData = optionalArgs odata }
-    where odata = [("at_period_end", show . unSubAtPeriodEnd <$> mspe)]
+    where odata = [("at_period_end", showByteString . unSubAtPeriodEnd <$> mspe)]
 
--- | Convenience function to create a 'SRequest' specific to
+-- | Convenience function to create a 'StripeRequest' specific to
 --   subscription-related actions.
-subRq :: CustomerId -> [String] -> SRequest
+subRq :: CustomerId -> [T.Text] -> StripeRequest
 subRq (CustomerId cid) pcs =
     baseSReq { sDestination = "customers":cid:"subscription":pcs }
 
@@ -114,8 +119,8 @@ subRq (CustomerId cid) pcs =
 
 -- | Convert a string to a 'SubStatus'. If the code is not known,
 --   'UnkownStatus' will be returned with the originally provided code.
-toSubStatus  :: String -> SubStatus
-toSubStatus s = case map toLower s of
+toSubStatus  :: T.Text -> SubStatus
+toSubStatus s = case T.map toLower s of
     "trialing"  -> Trialing
     "active"    -> Active
     "past_due"  -> PastDue
@@ -124,15 +129,14 @@ toSubStatus s = case map toLower s of
     _           -> UnknownStatus s
 
 -- | Attempts to parse JSON into a 'Subscription'.
-instance JSON Subscription where
-    readJSON (JSObject c) =
-        Subscription `liftM` (CustomerId  <$> jGet c "customer")
-                        `ap` jGet c "plan"
-                        `ap` (toSubStatus <$> jGet c "status")
-                        `ap` (fromSeconds <$> jGet c "start")
-                        `ap` (fromSeconds <$> jGet c "trial_start")
-                        `ap` (fromSeconds <$> jGet c "trial_end")
-                        `ap` (fromSeconds <$> jGet c "current_period_start")
-                        `ap` (fromSeconds <$> jGet c "current_period_end")
-    readJSON _ = Error "Unable to read Stripe subscription."
-    showJSON _ = undefined
+instance FromJSON Subscription where
+    parseJSON (Object o) = Subscription 
+      <$> (CustomerId  <$> o .: "customer")
+      <*> o .: "plan"
+      <*> (toSubStatus <$> o .: "status")
+      <*> (fromSeconds <$> o .: "start")
+      <*> (fromSeconds <$> o .: "trial_start")
+      <*> (fromSeconds <$> o .: "trial_end")
+      <*> (fromSeconds <$> o .: "current_period_start")
+      <*> (fromSeconds <$> o .: "current_period_end")
+    parseJSON _ = mzero

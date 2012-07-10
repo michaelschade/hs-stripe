@@ -14,18 +14,19 @@ module Web.Stripe.Token
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>) )
-import Control.Monad        ( liftM, ap )
+import Control.Applicative  ( (<$>), (<*>))
+import Control.Monad        ( liftM, mzero )
 import Control.Monad.Error  ( MonadIO )
 import Network.HTTP.Types   ( StdMethod(..) )
-import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject) )
 import Web.Stripe.Card      ( Card(..), RequestCard(..), rCardKV )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
+import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
                             , query, runStripeT
                             )
 import Web.Stripe.Utils     ( Amount(..), Currency(..), UTCTime(..), fromSeconds
-                            , jGet, optionalArgs
+                            , optionalArgs, showByteString, textToByteString
                             )
+import qualified Data.Text              as T
+import           Data.Aeson (FromJSON (..), (.:), Value (..))
 
 ----------------
 -- Data Types --
@@ -43,7 +44,7 @@ data Token = Token
     } deriving Show
 
 -- | Represents the identifier for a given 'Token' in the Stripe system.
-newtype TokenId = TokenId { unTokenId :: String } deriving Show
+newtype TokenId = TokenId { unTokenId :: T.Text } deriving Show
 
 -- | Creates a 'Token' in the Stripe system.
 createToken :: MonadIO m => RequestCard -> Maybe Amount -> Maybe Currency
@@ -52,16 +53,16 @@ createToken rc ma mc =
     snd `liftM` query (tokRq []) { sMethod = POST, sData = fdata }
     where
         fdata   = rCardKV rc ++ optionalArgs mdata
-        mdata   = [ ("amount",   show . unAmount <$> ma)
-                  , ("currency", unCurrency <$> mc)
+        mdata   = [ ("amount",   showByteString . unAmount <$> ma)
+                  , ("currency", textToByteString . unCurrency <$> mc)
                   ]
 
 -- | Retrieves a specific 'Token' based on its 'Token'.
 getToken :: MonadIO m => TokenId -> StripeT m Token
 getToken (TokenId tid) = return . snd =<< query (tokRq [tid])
 
--- | Convenience function to create a 'SRequest' specific to tokens.
-tokRq :: [String] -> SRequest
+-- | Convenience function to create a 'StripeRequest' specific to tokens.
+tokRq :: [T.Text] -> StripeRequest
 tokRq pcs = baseSReq { sDestination = "tokens":pcs }
 
 ------------------
@@ -69,14 +70,13 @@ tokRq pcs = baseSReq { sDestination = "tokens":pcs }
 ------------------
 
 -- | Attempts to parse JSON into a 'Token'.
-instance JSON Token where
-    readJSON (JSObject c) =
-        Token `liftM` (TokenId      <$> jGet c "id")
-                 `ap` jGet c "livemode"
-                 `ap` jGet c "used"
-                 `ap` (fromSeconds  <$> jGet c "created")
-                 `ap` (Amount       <$> jGet c "amount")
-                 `ap` (Currency     <$> jGet c "currency")
-                 `ap` jGet c "card"
-    readJSON _ = Error "Unable to read Stripe token."
-    showJSON _ = undefined
+instance FromJSON Token where
+    parseJSON (Object o) = Token 
+      <$> (TokenId      <$> o .: "id")
+      <*> o .: "livemode"
+      <*> o .: "used"
+      <*> (fromSeconds  <$> o .: "created")
+      <*> (Amount       <$> o .: "amount")
+      <*> (Currency     <$> o .: "currency")
+      <*> o .: "card"
+    parseJSON _ = mzero
