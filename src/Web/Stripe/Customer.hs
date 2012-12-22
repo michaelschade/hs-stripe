@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Customer
     ( Customer(..)
     , CustomerId(..)
@@ -20,36 +22,38 @@ module Web.Stripe.Customer
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>), (<*>))
-import Control.Monad        ( liftM, mzero )
-import Control.Monad.Error  ( Error, MonadIO, MonadError, throwError, strMsg )
-import Data.Maybe           ( fromMaybe )
-import Web.Stripe.Card      ( Card, RequestCard, rCardKV )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..)
-                            , StdMethod(..), baseSReq, queryData, query, runStripeT
-                            )
-import Web.Stripe.Coupon    ( CpnId(..) )
-import Web.Stripe.Plan      ( PlanId(..) )
-import Web.Stripe.Utils     ( Count(..), Offset(..), Description(..)
-                            , UTCTime(..), valFromRawJson
-                            , optionalArgs, textToByteString, showByteString
-                            )
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (liftM, mzero)
+import           Control.Monad.Error (Error, MonadError, MonadIO, strMsg,
+                                      throwError)
+import           Data.Maybe          (fromMaybe)
+import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
+import           Web.Stripe.Client   (SConfig (..), StdMethod (..),
+                                      StripeRequest (..), StripeT (..),
+                                      baseSReq, query, queryData, runStripeT)
+import           Web.Stripe.Coupon   (CpnId (..))
+import           Web.Stripe.Plan     (PlanId (..))
+import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
+                                      UTCTime (..), optionalArgs,
+                                      showByteString, textToByteString,
+                                      valFromRawJson)
 
-import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..))
-import           Data.Aeson.Types (parseMaybe)
-import qualified Data.Text   as T
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
+import           Data.Aeson.Types    (parseMaybe)
+import qualified Data.Text           as T
+
 ----------------
 -- Data Types --
 ----------------
 
 -- | Represents a customer in the Stripe system.
 data Customer = Customer
-    { custId            :: CustomerId
-    , custEmail         :: Email
-    , custDescription   :: Maybe Description
-    , custLive          :: Bool
-    , custCreated       :: UTCTime
-    , custActiveCard    :: Maybe Card
+    { custId          :: CustomerId
+    , custEmail       :: Email
+    , custDescription :: Maybe Description
+    , custLive        :: Bool
+    , custCreated     :: UTCTime
+    , custActiveCard  :: Maybe Card
     } deriving Show
 
 -- | Represents a 'Customer'\'s ID in the Stripe system.
@@ -133,7 +137,7 @@ customerRq pcs = baseSReq { sDestination = "customers":pcs }
 
 -- | Attempts to parse JSON into a 'Customer'.
 instance FromJSON Customer where
-    parseJSON (Object o) = Customer 
+    parseJSON (Object o) = Customer
         <$> (CustomerId   <$> o .: "id")
         <*> (Email        <$> o .: "email")
         <*> ((fmap . fmap) Description  (o .:? "description"))

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Plan
     ( Plan(..)
     , PlanInterval(..)
@@ -19,20 +21,20 @@ module Web.Stripe.Plan
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>), (<*>) )
-import Control.Monad        ( mzero )
-import Control.Monad.Error  ( MonadIO, throwError, strMsg )
-import Data.Char            ( toLower )
-import Network.HTTP.Types   ( StdMethod(..) )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                            , queryData, query, query_, runStripeT
-                            )
-import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..), Offset(..) 
-                            , valFromRawJson , optionalArgs
-                            , textToByteString, showByteString )
-import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..))
-import           Data.Aeson.Types (parseMaybe)
-import qualified Data.Text   as T
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (mzero)
+import           Control.Monad.Error (MonadIO, strMsg, throwError)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
+import           Data.Aeson.Types    (parseMaybe)
+import           Data.Char           (toLower)
+import qualified Data.Text           as T
+import           Network.HTTP.Types  (StdMethod (..))
+import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+                                      StripeT (..), baseSReq, query, queryData,
+                                      query_, runStripeT)
+import           Web.Stripe.Utils    (Amount (..), Count (..), Currency (..),
+                                      Offset (..), optionalArgs, showByteString,
+                                      textToByteString, valFromRawJson)
 
 ----------------
 -- Data Types --
@@ -131,7 +133,7 @@ toPlanInterval p = case T.map toLower p of
 
 -- | Attempts to parse JSON into a 'Plan'.
 instance FromJSON Plan where
-    parseJSON (Object o) = Plan 
+    parseJSON (Object o) = Plan
         <$> (PlanId         <$> o .: "id")
         <*> (Amount         <$> o .: "amount")
         <*> (toPlanInterval <$> o .: "interval")

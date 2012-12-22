@@ -1,4 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TupleSections              #-}
 
 module Web.Stripe.Client
     ( SConfig(..)
@@ -21,31 +23,25 @@ module Web.Stripe.Client
     , StdMethod(..)
     ) where
 
-import Control.Monad        ( MonadPlus, liftM, mzero, join)
-import Control.Monad.Error  ( Error, ErrorT, MonadIO, MonadError, runErrorT
-                            , throwError, strMsg, noMsg
-                            )
-import Control.Monad.State  ( MonadState, StateT, runStateT, get )
-import Control.Monad.Trans  ( liftIO )
-import Data.Char            ( toLower )
-import Data.Text            ( Text )
-        -- _TMP import Network.Curl         ( CurlOption(..), CurlResponse, CurlResponse_(..)
-        -- _TMP                             , curlGetResponse_, method_GET, method_HEAD
-        -- _TMP                             , method_POST
-        -- _TMP                             )
-import Network.HTTP.Types  --  ( StdMethod(..), renderQuery, renderStdMethod, Ascii, Request(..)
-        -- _TMP import Network.URI          ( URI(..), URIAuth(..) )
-
-import qualified Data.ByteString.Char8  as C8
-import qualified Data.ByteString.Lazy   as BL
-import qualified Data.ByteString        as B
-import qualified Data.Text              as T
+import           Control.Monad         (MonadPlus, join, liftM, mzero)
+import           Control.Monad.Error   (Error, ErrorT, MonadError, MonadIO,
+                                        noMsg, runErrorT, strMsg, throwError)
+import           Control.Monad.State   (MonadState, StateT, get, runStateT)
+import           Control.Monad.Trans   (liftIO)
+import           Data.Aeson            (FromJSON (..), Value (..), decode',
+                                        (.:), (.:?))
+import           Data.Aeson.Types      (parseMaybe)
+import qualified Data.ByteString       as B
+import qualified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.Lazy  as BL
+import           Data.Char             (toLower)
+import qualified Data.HashMap.Lazy     as HML
+import           Data.Text             (Text)
+import qualified Data.Text             as T
 import           Network.HTTP.Conduit
-import           Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), decode')
-import           Data.Aeson.Types (parseMaybe)
-import qualified Data.HashMap.Lazy      as HML
-import           Web.Stripe.Utils (textToByteString)
-import           System.IO (putStrLn)
+import           Network.HTTP.Types
+import           System.IO             (putStrLn)
+import           Web.Stripe.Utils      (textToByteString)
 
 ------------------------
 -- General Data T\ypes --
@@ -128,10 +124,10 @@ data SErrorCode
 --   specify a Stripe resource. More generally, 'baseSReq' will be desired as
 --   it provides sensible defaults that can be overriden as needed.
 data StripeRequest = StripeRequest
-    { sMethod       :: StdMethod
-    , sDestination  :: [Text]
-    , sData         :: [(B.ByteString, B.ByteString)]
-    , sQString      :: [(String, String)]
+    { sMethod      :: StdMethod
+    , sDestination :: [Text]
+    , sData        :: [(B.ByteString, B.ByteString)]
+    , sQString     :: [(String, String)]
     } deriving Show
 
 ------------------
@@ -232,7 +228,7 @@ query req = query' req >>= \(code, ans) -> do
 queryData :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
 queryData req = query' req >>= \(code, ans) -> do
     val <- maybe (throwError $ strMsg "could not parse JSON") return $ decode' ans
-    case val of 
+    case val of
         Object o -> do
             objVal <- maybe (throwError $ strMsg "no data in json" ) return $
                             HML.lookup "data" o
@@ -255,17 +251,17 @@ setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeader
 --   make an authenticated query to the Stripe server.
 --   _TODO there is lots of sloppy Text <-> String stuff here.. should fix
 prepRq :: Monad m => SConfig -> StripeRequest -> Maybe (Request m)
-prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $ 
-    (addBodyUa req) { queryString = renderQuery False qs 
+prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $
+    (addBodyUa req) { queryString = renderQuery False qs
                     , method = renderStdMethod $ sMethod sReq
                     }
   where
     k = textToByteString . unAPIKey $ key cfg
     p = textToByteString ""
-    addBodyUa = urlEncodedBody (sData sReq) . setUserAgent "hs-string/0.2 http-conduit" 
-    mReq = parseUrl . T.unpack $ T.concat 
+    addBodyUa = urlEncodedBody (sData sReq) . setUserAgent "hs-string/0.2 http-conduit"
+    mReq = parseUrl . T.unpack $ T.concat
             [ "https://api.stripe.com:443/v1/"
-            , T.intercalate "/" (sDestination sReq) ] 
+            , T.intercalate "/" (sDestination sReq) ]
     qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString sReq
 
 --------------------

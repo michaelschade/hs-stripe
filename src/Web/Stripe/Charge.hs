@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Charge
     ( Charge(..)
     , ChargeId(..)
@@ -25,25 +27,25 @@ module Web.Stripe.Charge
     , runStripeT
     ) where
 
-import           Control.Monad        ( liftM, mzero )
-import           Control.Monad.Error  ( MonadIO, throwError, strMsg )
-import           Web.Stripe.Card      ( Card, RequestCard, rCardKV )
-import           Web.Stripe.Customer  ( Customer(..), CustomerId(..) )
-import           Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                                      , query, runStripeT, queryData
-                                      )
-import           Web.Stripe.Token     ( Token(..), TokenId(..) )
-import           Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
-                                      , Description(..), Offset(..), UTCTime(..)
-                                      , fromSeconds, optionalArgs, valFromRawJson
-                                      , textToByteString, showByteString
-                                      )
-import           Data.Aeson (FromJSON (..), (.:?), (.:), Value (..))
-import           Data.Aeson.Types (parseMaybe)
-import           Control.Applicative  ( (<$>), (<*>))
-import qualified Data.Text              as T
-import qualified Data.ByteString        as B
-import           Network.HTTP.Types   (StdMethod(..))
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (liftM, mzero)
+import           Control.Monad.Error (MonadIO, strMsg, throwError)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
+import           Data.Aeson.Types    (parseMaybe)
+import qualified Data.ByteString     as B
+import qualified Data.Text           as T
+import           Network.HTTP.Types  (StdMethod (..))
+import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
+import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+                                      StripeT (..), baseSReq, query, queryData,
+                                      runStripeT)
+import           Web.Stripe.Customer (Customer (..), CustomerId (..))
+import           Web.Stripe.Token    (Token (..), TokenId (..))
+import           Web.Stripe.Utils    (Amount (..), Count (..), Currency (..),
+                                      Description (..), Offset (..),
+                                      UTCTime (..), fromSeconds, optionalArgs,
+                                      showByteString, textToByteString,
+                                      valFromRawJson)
 
 ----------------
 -- Data Types --
@@ -119,7 +121,7 @@ getCharge (ChargeId cid) = snd `liftM` query (chargeRq [cid])
 --      * 'Customer'.
 getCharges :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
            -> StripeT m [Charge]
-getCharges mcid mc mo = 
+getCharges mcid mc mo =
     queryData ((chargeRq []) { sQString = optionalArgs oqs }) >>= return . snd
   where
     oqs   = [ ("count",     show . unCount  <$> mc)
@@ -165,7 +167,7 @@ chargeRq pcs = baseSReq { sDestination = "charges":pcs }
 
 -- | Attempts to parse JSON into a 'Charge'.
 instance FromJSON Charge where
-    parseJSON (Object v) = Charge 
+    parseJSON (Object v) = Charge
         <$> (ChargeId <$> v .: "id")
         <*> (fromSeconds       <$> v .: "created")
         <*> ((Description <$>) <$> v .:? "description")

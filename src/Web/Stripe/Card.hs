@@ -1,38 +1,41 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Card
     ( Card(..)
     , RequestCard(..)
     , rCardKV
     ) where
 
-import           Control.Monad    (mzero)
-import           Data.Aeson (FromJSON (..), (.:), Value (..))
-import           Control.Applicative  ( (<$>), (<*>) )
-import           Web.Stripe.Utils (textToByteString, showByteString,  optionalArgs )
-import qualified Data.Text   as T
-import qualified Data.ByteString        as B
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (mzero)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import qualified Data.ByteString     as B
+import qualified Data.Text           as T
+import           Web.Stripe.Utils    (optionalArgs, showByteString,
+                                      textToByteString)
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
-    { cardType      :: T.Text
-    , cardCountry   :: T.Text
-    , cardLastFour  :: T.Text
-    , cardExpMonth  :: Int
-    , cardExpYear   :: Int
+    { cardType     :: T.Text
+    , cardCountry  :: T.Text
+    , cardLastFour :: T.Text
+    , cardExpMonth :: Int
+    , cardExpYear  :: Int
     } deriving Show
 
 -- | Represents a credit car (with full details) that is used as input to the
 --   Stripe API.
 data RequestCard = RequestCard
-    { rCardNumber       :: T.Text
-    , rCardExpMonth     :: Int
-    , rCardExpYear      :: Int
-    , rCardCVC          :: Maybe T.Text -- ^ Highly recommended to supply
-    , rCardFullName     :: Maybe T.Text
-    , rCardAddrLineOne  :: Maybe T.Text
-    , rCardAddrLineTwo  :: Maybe T.Text
-    , rCardAddrZip      :: Maybe T.Text
-    , rCardAddrState    :: Maybe T.Text
-    , rCardAddrCountry  :: Maybe T.Text
+    { rCardNumber      :: T.Text
+    , rCardExpMonth    :: Int
+    , rCardExpYear     :: Int
+    , rCardCVC         :: Maybe T.Text -- ^ Highly recommended to supply
+    , rCardFullName    :: Maybe T.Text
+    , rCardAddrLineOne :: Maybe T.Text
+    , rCardAddrLineTwo :: Maybe T.Text
+    , rCardAddrZip     :: Maybe T.Text
+    , rCardAddrState   :: Maybe T.Text
+    , rCardAddrCountry :: Maybe T.Text
     } deriving Show
 
 -- | Turns a 'RequestCard' into a list of key-value pairs that can be submitted

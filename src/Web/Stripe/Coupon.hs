@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Coupon
     ( Coupon(..)
     , CpnId(..)
@@ -19,20 +21,22 @@ module Web.Stripe.Coupon
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>) )
-import Control.Monad        ( mzero )
-import Control.Monad.Error  ( MonadIO, throwError, strMsg )
-import Data.Char            ( toLower )
-import Network.HTTP.Types   ( StdMethod(..) )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                            , queryData, query, query_, runStripeT
-                            )
-import Web.Stripe.Utils     ( Count(..), Offset(..),  optionalArgs, valFromRawJson
-                            , textToByteString, showByteString)
-import Data.Aeson (FromJSON (..), (.:), (.:?), Value (..), parseJSON)
-import qualified Data.Text              as T 
-import qualified Data.ByteString        as B
-import           Data.Aeson.Types (parseMaybe)
+import           Control.Applicative ((<$>))
+import           Control.Monad       (mzero)
+import           Control.Monad.Error (MonadIO, strMsg, throwError)
+import           Data.Aeson          (FromJSON (..), Value (..), parseJSON,
+                                      (.:), (.:?))
+import           Data.Aeson.Types    (parseMaybe)
+import qualified Data.ByteString     as B
+import           Data.Char           (toLower)
+import qualified Data.Text           as T
+import           Network.HTTP.Types  (StdMethod (..))
+import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+                                      StripeT (..), baseSReq, query, queryData,
+                                      query_, runStripeT)
+import           Web.Stripe.Utils    (Count (..), Offset (..), optionalArgs,
+                                      showByteString, textToByteString,
+                                      valFromRawJson)
 
 ----------------
 -- Data Types --
@@ -63,7 +67,7 @@ data CpnDuration
 newtype CpnPercentOff = CpnPercentOff { unCpnPercentOff :: Int } deriving Show
 
 -- | A positive number representing the maximum number of times that a coupon
---   can be redeemed. 
+--   can be redeemed.
 newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving Show
 
 -- | UTC timestamp specifying the last time at which the coupon can be
@@ -71,10 +75,10 @@ newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving Show
 newtype CpnRedeemBy = CpnRedeemBy { unCpnRedeemBy :: Int } deriving Show
 
 -- | Creates a 'Coupon' in the Stripe system.
-createCoupon 
-    :: MonadIO m 
-    => Coupon 
-    -> Maybe CpnMaxRedeems 
+createCoupon
+    :: MonadIO m
+    => Coupon
+    -> Maybe CpnMaxRedeems
     -> Maybe CpnRedeemBy
     -> StripeT m ()
 createCoupon c mmr mrb = query_ (cpnRq []) { sMethod = POST, sData = fdata }

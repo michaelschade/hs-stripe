@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Subscription
     ( Subscription(..)
     , SubStatus(..)
@@ -15,26 +17,24 @@ module Web.Stripe.Subscription
     , runStripeT
     ) where
 
-import Control.Monad        ( liftM, mzero )
-import Control.Monad.Error  ( MonadIO )
-import Data.Char            ( toLower )
-import Network.HTTP.Types   ( StdMethod(..) )
-import Web.Stripe.Card      ( RequestCard, rCardKV )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), StripeRequest(..), baseSReq
-                            , query, runStripeT
-                            )
-import Web.Stripe.Coupon    ( CpnId(..) )
-import Web.Stripe.Customer  ( CustomerId(..) )
-import Web.Stripe.Token     ( TokenId(..) )
-import Web.Stripe.Plan      ( Plan, PlanId(..) )
-import Web.Stripe.Utils     ( UTCTime(..), fromSeconds,  optionalArgs
-                            , textToByteString, showByteString
-                            )
+import           Control.Monad       (liftM, mzero)
+import           Control.Monad.Error (MonadIO)
+import           Data.Char           (toLower)
+import           Network.HTTP.Types  (StdMethod (..))
+import           Web.Stripe.Card     (RequestCard, rCardKV)
+import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+                                      StripeT (..), baseSReq, query, runStripeT)
+import           Web.Stripe.Coupon   (CpnId (..))
+import           Web.Stripe.Customer (CustomerId (..))
+import           Web.Stripe.Plan     (Plan, PlanId (..))
+import           Web.Stripe.Token    (TokenId (..))
+import           Web.Stripe.Utils    (UTCTime (..), fromSeconds, optionalArgs,
+                                      showByteString, textToByteString)
 
-import           Data.Aeson (FromJSON (..), (.:), Value (..))
-import           Control.Applicative  ( (<$>), (<*>))
-import qualified Data.Text              as T
-import qualified Data.ByteString        as B
+import           Control.Applicative ((<$>), (<*>))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import qualified Data.ByteString     as B
+import qualified Data.Text           as T
 
 ------------------
 -- Subsriptions --
@@ -42,14 +42,14 @@ import qualified Data.ByteString        as B
 
 -- | Represents a subscription in the Stripe API.
 data Subscription = Subscription
-    { subCustomerId     :: CustomerId
-    , subPlan           :: Plan
-    , subStatus         :: SubStatus
-    , subStart          :: UTCTime
-    , subTrialStart     :: UTCTime
-    , subTrialEnd       :: UTCTime
-    , subPeriodStart    :: UTCTime -- ^ Current period start
-    , subPeriodEnd      :: UTCTime -- ^ Current period end
+    { subCustomerId  :: CustomerId
+    , subPlan        :: Plan
+    , subStatus      :: SubStatus
+    , subStart       :: UTCTime
+    , subTrialStart  :: UTCTime
+    , subTrialEnd    :: UTCTime
+    , subPeriodStart :: UTCTime -- ^ Current period start
+    , subPeriodEnd   :: UTCTime -- ^ Current period end
     } deriving Show
 
 -- | Describes the various stages that a
@@ -130,7 +130,7 @@ toSubStatus s = case T.map toLower s of
 
 -- | Attempts to parse JSON into a 'Subscription'.
 instance FromJSON Subscription where
-    parseJSON (Object o) = Subscription 
+    parseJSON (Object o) = Subscription
       <$> (CustomerId  <$> o .: "customer")
       <*> o .: "plan"
       <*> (toSubStatus <$> o .: "status")

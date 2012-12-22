@@ -15,16 +15,17 @@ module Web.Stripe.Utils
     , showByteString
     ) where
 
-import Data.Time.Clock          ( UTCTime(..) )
-import Data.Time.Clock.POSIX    ( posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
-import Data.Time.Format         ( ) -- imports Show instance for UTCTime
+import           Data.Time.Clock          (UTCTime (..))
+import           Data.Time.Clock.POSIX    (posixSecondsToUTCTime,
+                                           utcTimeToPOSIXSeconds)
+import           Data.Time.Format         ()
 
-import           Data.Aeson (decode, Value (..))
-import qualified Data.HashMap.Lazy      as HML
-import qualified Data.Text   as T 
-import qualified Data.ByteString.Lazy   as BL
-import qualified Data.ByteString        as B
 import qualified Codec.Binary.UTF8.String as CodecUtf8
+import           Data.Aeson               (Value (..), decode)
+import qualified Data.ByteString          as B
+import qualified Data.ByteString.Lazy     as BL
+import qualified Data.HashMap.Lazy        as HML
+import qualified Data.Text                as T
 
 showByteString :: Show a => a -> B.ByteString
 showByteString = stringToByteString . show
