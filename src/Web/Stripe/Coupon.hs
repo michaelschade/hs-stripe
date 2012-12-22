@@ -22,7 +22,7 @@ module Web.Stripe.Coupon
     ) where
 
 import           Control.Applicative ((<$>))
-import           Control.Monad       (mzero)
+import           Control.Monad       (liftM, mzero)
 import           Control.Monad.Error (MonadIO, strMsg, throwError)
 import           Data.Aeson          (FromJSON (..), Value (..), parseJSON,
                                       (.:), (.:?))
@@ -98,7 +98,7 @@ getCoupon (CpnId cid) = return . snd =<< query (cpnRq [cid])
 --      * number of charges, via 'Count' and
 --      * page of results, via 'Offset'.
 getCoupons :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Coupon]
-getCoupons mc mo = queryData (cpnRq []) { sQString = qs } >>= return . snd
+getCoupons mc mo = liftM snd $ queryData (cpnRq []) { sQString = qs }
   where
     qs = optionalArgs [ ("count",  show . unCount  <$> mc)
                       , ("offset", show . unOffset <$> mo)
@@ -115,7 +115,7 @@ delCoupon  = handleCpnId . cpnId
 -- | Deletes a 'Coupon', identified by its 'CpnId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCouponById :: MonadIO m => CpnId -> StripeT m Bool
-delCouponById (CpnId cid) = queryData (cpnRq [cid]) { sMethod = DELETE } >>= return . snd
+delCouponById (CpnId cid) = liftM snd $ queryData (cpnRq [cid]) { sMethod = DELETE }
 
 -- | Convenience function to create a 'StripeRequest' specific to coupon-related
 --   actions.

@@ -101,7 +101,7 @@ charge :: MonadIO m => [(B.ByteString, B.ByteString)] -> Amount -> Currency
 charge adata a c mcd =
     snd `liftM` query (chargeRq []) { sMethod = POST, sData = fdata }
     where
-        fdata = (optionalArgs odata) ++ adata ++ bdata
+        fdata = optionalArgs odata ++ adata ++ bdata
         odata = [ ("description", textToByteString . unDescription <$> mcd) ]
         bdata = [ ("amount",      showByteString . unAmount $ a)
                 , ("currency",    textToByteString $ unCurrency c)
@@ -119,8 +119,8 @@ getCharge (ChargeId cid) = snd `liftM` query (chargeRq [cid])
 --      * 'Customer'.
 getCharges :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
            -> StripeT m [Charge]
-getCharges mcid mc mo =
-    queryData ((chargeRq []) { sQString = optionalArgs oqs }) >>= return . snd
+getCharges mcid mc mo = liftM snd $
+                        queryData ((chargeRq []) { sQString = optionalArgs oqs })
   where
     oqs   = [ ("count",     show . unCount  <$> mc)
             , ("offset",    show . unOffset <$> mo)

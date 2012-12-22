@@ -104,8 +104,7 @@ getCustomer (CustomerId cid) =
 --      * number of charges, via 'Count' and
 --      * page of results, via 'Offset'.
 getCustomers :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Customer]
-getCustomers mc mo = do
-    queryData ((customerRq []) { sQString = qstring }) >>= return . snd
+getCustomers mc mo = liftM snd $ queryData ((customerRq []) { sQString = qstring })
     where
         qstring = optionalArgs  [ ("count",  show . unCount  <$> mc)
                                 , ("offset", show . unOffset <$> mo)
@@ -119,9 +118,8 @@ delCustomer  = delCustomerById . custId
 -- | Deletes a 'Customer', identified by its 'CustomerId', if it exists.  If it
 --   does not, an 'InvalidRequestError' will be thrown indicating this.
 delCustomerById :: MonadIO m => CustomerId -> StripeT m Bool
-delCustomerById (CustomerId cid) = queryData req >>= return . snd
-    where
-        req     = (customerRq [cid]) { sMethod = DELETE }
+delCustomerById (CustomerId cid) = liftM snd $ queryData req
+    where req = (customerRq [cid]) { sMethod = DELETE }
 
 -- | Convenience function to create a 'StripeRequest' specific to customer-related
 --   actions.
@@ -137,7 +135,7 @@ instance FromJSON Customer where
     parseJSON (Object o) = Customer
         <$> (CustomerId   <$> o .: "id")
         <*> (Email        <$> o .: "email")
-        <*> ((fmap . fmap) Description  (o .:? "description"))
+        <*> (fmap . fmap) Description  (o .:? "description")
         <*> o .: "livemode"
         <*> o .: "created"
         <*> o .:? "active_card"

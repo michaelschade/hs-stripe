@@ -22,7 +22,7 @@ module Web.Stripe.Plan
     ) where
 
 import           Control.Applicative ((<$>), (<*>))
-import           Control.Monad       (mzero)
+import           Control.Monad       (liftM, mzero)
 import           Control.Monad.Error (MonadIO)
 import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import           Data.Char           (toLower)
@@ -79,7 +79,7 @@ createPlan p = query_ (planRq []) { sMethod = POST, sData = fdata }
 
 -- | Retrieves a specific 'Plan' based on its 'PlanId'.
 getPlan :: MonadIO m => PlanId -> StripeT m Plan
-getPlan (PlanId pid) = return . snd =<< query (planRq [pid])
+getPlan (PlanId pid) = liftM snd $ query (planRq [pid])
 
 -- | Retrieves a list of all 'Plan's. The query can optionally be refined to
 --   a specific:
@@ -87,8 +87,7 @@ getPlan (PlanId pid) = return . snd =<< query (planRq [pid])
 --      * number of charges, via 'Count' and
 --      * page of results, via 'Offset'.
 getPlans :: MonadIO m => Maybe Count -> Maybe Offset -> StripeT m [Plan]
-getPlans mc mo = do
-    queryData (planRq []) { sQString = qs } >>= return . snd
+getPlans mc mo = liftM snd $ queryData (planRq []) { sQString = qs }
   where
     qs    = optionalArgs [ ("count",  show . unCount  <$> mc)
                          , ("offset", show . unOffset <$> mo)
@@ -102,9 +101,7 @@ delPlan  = delPlanById . planId
 -- | Deletes a 'Plan', identified by its 'PlanId', if it exists.  If it does
 --   not, an 'InvalidRequestError' will be thrown indicating this.
 delPlanById :: MonadIO m => PlanId -> StripeT m Bool
-delPlanById (PlanId pid) = queryData req >>= return . snd
-    where
-        req     = (planRq [pid]) { sMethod = DELETE }
+delPlanById (PlanId pid) = liftM snd $ queryData (planRq [pid]) { sMethod = DELETE }
 
 -- | Convenience function to create a 'StripeRequest' specific to plan-related
 --   actions.

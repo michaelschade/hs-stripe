@@ -190,25 +190,12 @@ baseSReq  = StripeRequest
 query' :: MonadIO m => StripeRequest -> StripeT m (StripeResponseCode, BL.ByteString)
 query' sReq = do
     cfg  <- get
-    -- let opts' = opts $ caFile cfg
     req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
     let req = req' {checkStatus = \_ _ -> Nothing}
-    -- liftIO $ print "req debug"
-    -- liftIO $ print $ host req
-    -- liftIO $ print $ port req
-    -- liftIO $ print $ secure req
-    -- liftIO $ print $ path req
-    -- liftIO $ print $ queryString req
     -- _TODO we should be able to pass in a manager rather thanusing the default manager
-    rsp  <- liftIO $ withManager (\mgr -> httpLbs req mgr)
+    rsp  <- liftIO . withManager $ httpLbs req
     code <- toCode (responseStatus rsp) (responseBody rsp)
-    -- liftIO $ putStrLn $ "---- response:"
-    -- liftIO $ print $ responseBody rsp
-    -- liftIO $ print $ (decode' $ responseBody rsp :: Maybe Value)
     return (code, responseBody rsp)
-    --  where
-    --      opts caf = CurlCAInfo caf : CurlFailOnError False : queryOptions req
-    --      request  = curlGetResponse_
 
 -- | Queries the Stripe API and attempts to parse the results into a data type
 --   that is an instance of 'JSON'. This is primarily for internal use by other
@@ -220,7 +207,7 @@ query' sReq = do
 -- > runStripeT conf $
 -- >    query baseSReq { sDestination = ["charges"] }
 query :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
-query req = query' req >>= \(code, ans) -> do
+query req = query' req >>= \(code, ans) ->
     maybe (throwError $ strMsg "could not parse JSON") (return . (code, )) $ decode' ans
 
 -- | same as `query` but pulls out the value inside a data field and returns that
@@ -320,7 +307,7 @@ toCECode c = case T.map toLower c of
 -- >>> errorMsg "{\"error\":\"Oh no, an error!\"}"
 -- Just "Oh no, an error!"
 errorMsg :: BL.ByteString -> Maybe StripeError
-errorMsg bs = join $ flip fmap (decode' bs) getErrorVal
+errorMsg bs = join . fmap getErrorVal $ decode' bs
   where
     getErrorVal (Object o) = maybe Nothing (parseMaybe  parseJSON) (HML.lookup "error" o)
     getErrorVal _ = Nothing
