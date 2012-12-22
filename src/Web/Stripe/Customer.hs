@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Web.Stripe.Customer
-    ( Customer(..)
+   ( Customer(..)
     , CustomerId(..)
     , Email(..)
     , createCustomer
+    , createCustomerByTokenId
     , updateCustomer
     , updateCustomerById
+    , updateCustomerByTokenId
+    , updateCustomerByIdByTokenId
     , getCustomer
     , getCustomers
     , delCustomer
@@ -25,19 +28,19 @@ module Web.Stripe.Customer
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (liftM, mzero)
 import           Control.Monad.Error (MonadIO)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import           Data.Maybe          (fromMaybe)
+import qualified Data.Text           as T
 import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
 import           Web.Stripe.Client   (SConfig (..), StdMethod (..),
                                       StripeRequest (..), StripeT (..),
                                       baseSReq, query, queryData, runStripeT)
 import           Web.Stripe.Coupon   (CpnId (..))
 import           Web.Stripe.Plan     (PlanId (..))
+import           Web.Stripe.Token    (TokenId (..))
 import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
                                       UTCTime (..), optionalArgs,
                                       showByteString, textToByteString)
-
-import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
-import qualified Data.Text           as T
 
 ----------------
 -- Data Types --
@@ -71,8 +74,24 @@ createCustomer mrc mcid me md mpid mtime =
                 , ("email",         textToByteString . unEmail         <$> me)
                 , ("description",   textToByteString . unDescription   <$> md)
                 , ("plan",          textToByteString . unPlanId        <$> mpid)
-                , ("trial_end",     showByteString  <$> mtime)
+                , ("trial_end",     showByteString                     <$> mtime)
                 ]
+
+-- | Create a new 'Customer' in the Stripe system using a TokenId.
+createCustomerByTokenId :: MonadIO m => Maybe TokenId -> Maybe CpnId -> Maybe Email
+                        -> Maybe Description -> Maybe PlanId -> Maybe Int
+                        -> StripeT m Customer
+createCustomerByTokenId mrt mcid me md mpid mtime =
+    snd `liftM` query (customerRq []) { sMethod = POST, sData = optionalArgs odata }
+    where
+        odata = [ ("card",          textToByteString . unTokenId       <$> mrt)
+                , ("coupon",        textToByteString . unCpnId         <$> mcid)
+                , ("email",         textToByteString . unEmail         <$> me)
+                , ("description",   textToByteString . unDescription   <$> md)
+                , ("plan",          textToByteString . unPlanId        <$> mpid)
+                , ("trial_end",     showByteString                     <$> mtime)
+                ]
+
 
 -- | Update an existing 'Customer' in the Stripe system.
 updateCustomer :: MonadIO m => Customer -> Maybe RequestCard -> Maybe CpnId
@@ -92,6 +111,26 @@ updateCustomerById (CustomerId cid) mrc mcid me md =
                 , ("email",       textToByteString . unEmail         <$> me)
                 , ("description", textToByteString . unDescription   <$> md)
                 ]
+
+-- | Update an existing 'Customer' in the Stripe system.
+updateCustomerByTokenId :: MonadIO m => Customer -> Maybe TokenId -> Maybe CpnId
+                        -> Maybe Email -> Maybe Description -> StripeT m Customer
+updateCustomerByTokenId  = updateCustomerByIdByTokenId . custId
+
+-- | Update an existing 'Customer', identified by 'CustomerId', in the Stripe
+--   system.
+updateCustomerByIdByTokenId :: MonadIO m => CustomerId -> Maybe TokenId
+                            -> Maybe CpnId -> Maybe Email -> Maybe Description
+                            -> StripeT m Customer
+updateCustomerByIdByTokenId (CustomerId cid) mrt mcid me md =
+    snd `liftM` query (customerRq [cid]) { sMethod = POST, sData = optionalArgs odata }
+    where
+        odata = [ ("card",        textToByteString . unTokenId       <$> mrt)
+                , ("coupon",      textToByteString . unCpnId         <$> mcid)
+                , ("email",       textToByteString . unEmail         <$> me)
+                , ("description", textToByteString . unDescription   <$> md)
+                ]
+
 
 -- | Retrieves a specific 'Customer' based on its 'CustomerId'.
 getCustomer :: MonadIO m => CustomerId -> StripeT m Customer
