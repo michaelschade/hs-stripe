@@ -242,7 +242,7 @@ queryData req = query' req >>= \(code, ans) -> do
 query_ :: MonadIO m => StripeRequest -> StripeT m ()
 query_ req = query' req >> return ()
 
-setUserAgent :: Ascii -> Request m -> Request m
+setUserAgent :: C8.ByteString -> Request m -> Request m
 setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeaders }
   where
     filteredHeaders = filter ((/= "User-Agent") . fst) $ requestHeaders req
