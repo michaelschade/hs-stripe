@@ -26,7 +26,6 @@ import           Control.Monad       (mzero)
 import           Control.Monad.Error (MonadIO, strMsg, throwError)
 import           Data.Aeson          (FromJSON (..), Value (..), parseJSON,
                                       (.:), (.:?))
-import           Data.Aeson.Types    (parseMaybe)
 import qualified Data.ByteString     as B
 import           Data.Char           (toLower)
 import qualified Data.Text           as T
@@ -35,8 +34,7 @@ import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, queryData,
                                       query_, runStripeT)
 import           Web.Stripe.Utils    (Count (..), Offset (..), optionalArgs,
-                                      showByteString, textToByteString,
-                                      valFromRawJson)
+                                      showByteString, textToByteString)
 
 ----------------
 -- Data Types --

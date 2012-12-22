@@ -24,8 +24,7 @@ module Web.Stripe.Customer
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (liftM, mzero)
-import           Control.Monad.Error (Error, MonadError, MonadIO, strMsg,
-                                      throwError)
+import           Control.Monad.Error (MonadIO)
 import           Data.Maybe          (fromMaybe)
 import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
 import           Web.Stripe.Client   (SConfig (..), StdMethod (..),
@@ -35,11 +34,9 @@ import           Web.Stripe.Coupon   (CpnId (..))
 import           Web.Stripe.Plan     (PlanId (..))
 import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
                                       UTCTime (..), optionalArgs,
-                                      showByteString, textToByteString,
-                                      valFromRawJson)
+                                      showByteString, textToByteString)
 
 import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
-import           Data.Aeson.Types    (parseMaybe)
 import qualified Data.Text           as T
 
 ----------------

@@ -40,7 +40,6 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types
-import           System.IO             (putStrLn)
 import           Web.Stripe.Utils      (textToByteString)
 
 ------------------------

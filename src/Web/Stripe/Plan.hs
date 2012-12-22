@@ -23,9 +23,8 @@ module Web.Stripe.Plan
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (mzero)
-import           Control.Monad.Error (MonadIO, strMsg, throwError)
+import           Control.Monad.Error (MonadIO)
 import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
-import           Data.Aeson.Types    (parseMaybe)
 import           Data.Char           (toLower)
 import qualified Data.Text           as T
 import           Network.HTTP.Types  (StdMethod (..))
@@ -34,7 +33,7 @@ import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
                                       query_, runStripeT)
 import           Web.Stripe.Utils    (Amount (..), Count (..), Currency (..),
                                       Offset (..), optionalArgs, showByteString,
-                                      textToByteString, valFromRawJson)
+                                      textToByteString)
 
 ----------------
 -- Data Types --

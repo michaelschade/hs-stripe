@@ -5,7 +5,6 @@ module Web.Stripe.Utils
     , Description(..)
     , Offset(..)
     , optionalArgs
-    , valFromRawJson
     {- Re-Export -}
     , UTCTime(..)
     , fromSeconds
@@ -17,10 +16,7 @@ module Web.Stripe.Utils
 
 import qualified Codec.Binary.UTF8.String as CodecUtf8
 import           Control.Monad            (liftM)
-import           Data.Aeson               (Value (..), decode)
 import qualified Data.ByteString          as B
-import qualified Data.ByteString.Lazy     as BL
-import qualified Data.HashMap.Lazy        as HML
 import           Data.Maybe               (mapMaybe)
 import qualified Data.Text                as T
 import           Data.Time.Clock          (UTCTime (..))
@@ -36,11 +32,6 @@ textToByteString = B.pack . CodecUtf8.encode . T.unpack
 
 stringToByteString :: String -> B.ByteString
 stringToByteString = B.pack . CodecUtf8.encode
-
-valFromRawJson :: T.Text -> BL.ByteString -> Maybe Value
-valFromRawJson k rawJson = case decode rawJson of
-    Just (Object o) -> HML.lookup k o
-    _ -> Nothing
 
 -----------------------
 -- Common Data Types --
