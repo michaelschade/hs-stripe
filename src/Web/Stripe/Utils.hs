@@ -15,17 +15,18 @@ module Web.Stripe.Utils
     , showByteString
     ) where
 
-import           Data.Time.Clock          (UTCTime (..))
-import           Data.Time.Clock.POSIX    (posixSecondsToUTCTime,
-                                           utcTimeToPOSIXSeconds)
-import           Data.Time.Format         ()
-
 import qualified Codec.Binary.UTF8.String as CodecUtf8
+import           Control.Monad            (liftM)
 import           Data.Aeson               (Value (..), decode)
 import qualified Data.ByteString          as B
 import qualified Data.ByteString.Lazy     as BL
 import qualified Data.HashMap.Lazy        as HML
+import           Data.Maybe               (mapMaybe)
 import qualified Data.Text                as T
+import           Data.Time.Clock          (UTCTime (..))
+import           Data.Time.Clock.POSIX    (posixSecondsToUTCTime,
+                                           utcTimeToPOSIXSeconds)
+import           Data.Time.Format         ()
 
 showByteString :: Show a => a -> B.ByteString
 showByteString = stringToByteString . show
@@ -83,7 +84,5 @@ toSeconds  = round . utcTimeToPOSIXSeconds
 --
 -- >>> optionalArgs [("k1", Just "supplied"), ("k2", Nothing)]
 -- [("k1","supplied")]
-optionalArgs :: [(a, Maybe a)] -> [(a, a)]
-optionalArgs []                 = []
-optionalArgs ((_, Nothing):xs)  = optionalArgs xs
-optionalArgs ((a, Just b):xs)   = (a, b):optionalArgs xs
+optionalArgs :: [(a, Maybe b)] -> [(a, b)]
+optionalArgs = mapMaybe . uncurry $ liftM . (,)
