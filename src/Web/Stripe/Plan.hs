@@ -16,7 +16,7 @@ module Web.Stripe.Plan
     , Count(..)
     , Currency(..)
     , Offset(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(StripeT)
     , runStripeT
     ) where
@@ -28,7 +28,7 @@ import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import           Data.Char           (toLower)
 import qualified Data.Text           as T
 import           Network.HTTP.Types  (StdMethod (..))
-import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, queryData,
                                       query_, runStripeT)
 import           Web.Stripe.Utils    (Amount (..), Count (..), Currency (..),

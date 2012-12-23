@@ -12,7 +12,7 @@ module Web.Stripe.Subscription
 
     {- Re-Export -}
     , UTCTime(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(StripeT)
     , runStripeT
     ) where
@@ -22,7 +22,7 @@ import           Control.Monad.Error (MonadIO)
 import           Data.Char           (toLower)
 import           Network.HTTP.Types  (StdMethod (..))
 import           Web.Stripe.Card     (RequestCard, rCardKV)
-import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, runStripeT)
 import           Web.Stripe.Coupon   (CpnId (..))
 import           Web.Stripe.Customer (CustomerId (..))

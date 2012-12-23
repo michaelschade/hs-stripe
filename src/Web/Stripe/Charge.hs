@@ -22,7 +22,7 @@ module Web.Stripe.Charge
     , Description(..)
     , Offset(..)
     , UTCTime(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(StripeT)
     , runStripeT
     ) where
@@ -35,7 +35,7 @@ import qualified Data.ByteString     as B
 import qualified Data.Text           as T
 import           Network.HTTP.Types  (StdMethod (..))
 import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
-import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, queryData,
                                       runStripeT)
 import           Web.Stripe.Customer (Customer (..), CustomerId (..))

@@ -11,7 +11,7 @@ module Web.Stripe.Token
     , Amount(..)
     , Card(..)
     , Currency(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(..)
     , runStripeT
     ) where
@@ -23,7 +23,7 @@ import           Data.Aeson          (FromJSON (..), Value (..), (.:))
 import qualified Data.Text           as T
 import           Network.HTTP.Types  (StdMethod (..))
 import           Web.Stripe.Card     (Card (..), RequestCard (..), rCardKV)
-import           Web.Stripe.Client   (SConfig (..), StripeRequest (..),
+import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, runStripeT)
 import           Web.Stripe.Utils    (Amount (..), Currency (..), UTCTime (..),
                                       fromSeconds, optionalArgs, showByteString,

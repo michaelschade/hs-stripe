@@ -3,12 +3,12 @@
 {-# LANGUAGE TupleSections              #-}
 
 module Web.Stripe.Client
-    ( SConfig(..)
+    ( StripeConfig(..)
     , APIKey(..)
     , StripeResponseCode(..)
-    , SFailure(..)
+    , StripeFailure(..)
     , StripeError(..)
-    , SErrorCode(..)
+    , StripeErrorCode(..)
     , StripeRequest(..)
     , Stripe
     , StripeT(StripeT)
@@ -47,7 +47,7 @@ import           Web.Stripe.Utils      (textToByteString)
 ------------------------
 
 -- | Configuration for the 'StripeT' monad transformer.
-data SConfig = SConfig
+data StripeConfig = StripeConfig
     { key    :: APIKey
     , caFile :: FilePath
     } deriving Show
@@ -68,7 +68,7 @@ data StripeResponseCode = OK | Unknown Int deriving Show
 --
 --   Please consult the official Stripe REST API documentation on error codes
 --   at <https://stripe.com/docs/api#errors> for more information.
-data SFailure
+data StripeFailure
     = BadRequest            (Maybe StripeError)
     | Unauthorized          (Maybe StripeError)
     | NotFound              (Maybe StripeError)
@@ -80,10 +80,10 @@ data SFailure
     | OtherFailure          (Maybe Text)
     deriving Show
 
--- | Describes a 'SFailure' in more detail, categorizing the error and
+-- | Describes a 'StripeFailure' in more detail, categorizing the error and
 --   providing additional information about it. At minimum, this is a message,
 --   and for 'CardError', this is a message, even more precise code
---   ('SErrorCode'), and potentially a paramter that helps suggest where an
+--   ('StripeErrorCode'), and potentially a paramter that helps suggest where an
 --   error message should be displayed.
 --
 --   In case the appropriate error could not be determined from the specified
@@ -94,7 +94,7 @@ data SFailure
 data StripeError
     = InvalidRequestError Text
     | APIError      Text
-    | CardError     Text SErrorCode (Maybe Text) -- message, code, params
+    | CardError     Text StripeErrorCode (Maybe Text) -- message, code, params
     | UnknownError  Text Text  -- type, message
     deriving Show
 
@@ -103,7 +103,7 @@ data StripeError
 --
 --   Please consult the official Stripe REST API documentation on error codes
 --   at <https://stripe.com/docs/api#errors> for more information.
-data SErrorCode
+data StripeErrorCode
     = InvalidNumber
     | IncorrectNumber
     | InvalidExpiryMonth
@@ -140,18 +140,18 @@ type Stripe a = StripeT IO a
 -- | Defines the monad transformer under which all Stripe REST API resource
 --   calls take place.
 newtype StripeT m a = StripeT
-    { unStripeT :: StateT SConfig (ErrorT SFailure m) a
+    { unStripeT :: StateT StripeConfig (ErrorT StripeFailure m) a
     } deriving  ( Functor, Monad, MonadIO, MonadPlus
-                , MonadError SFailure
-                , MonadState SConfig
+                , MonadError StripeFailure
+                , MonadState StripeConfig
                 )
 
--- | Runs the 'StripeT' monad transformer with a given 'SConfig'. This will
+-- | Runs the 'StripeT' monad transformer with a given 'StripeConfig'. This will
 --   handle all of the authorization dance steps necessary to utilize the
 --   Stripe API.
 --
 --   Its use is demonstrated in other functions, such as 'query'.
-runStripeT :: MonadIO m => SConfig -> StripeT m a -> m (Either SFailure a)
+runStripeT :: MonadIO m => StripeConfig -> StripeT m a -> m (Either StripeFailure a)
 runStripeT cfg m =
     runErrorT . liftM fst . (`runStateT` cfg) . unStripeT $ m
 
@@ -159,11 +159,11 @@ runStripeT cfg m =
 -- Querying --
 --------------
 
--- | Provides a default 'SConfig'. Essentially, this inserts the 'APIKey', but
+-- | Provides a default 'StripeConfig'. Essentially, this inserts the 'APIKey', but
 --   leaves other fields blank. This is especially relavent due to the current
 --   CA file check bug.
-defaultConfig  :: APIKey -> SConfig
-defaultConfig k = SConfig k ""
+defaultConfig  :: APIKey -> StripeConfig
+defaultConfig k = StripeConfig k ""
 
 -- | The basic 'StripeRequest' environment upon which all other Stripe API requests
 --   will be built. Standard usage involves overriding one or more of the
@@ -183,7 +183,7 @@ baseSReq  = StripeRequest
 --   'StripeResponseCode' undecoded. Use 'query' to try to decode it into a 'JSON'
 --   type. E.g.,
 --
--- > let conf = SConfig "key" "secret"
+-- > let conf = StripeConfig "key" "secret"
 -- >
 -- > runStripeT conf $
 -- >    query' baseSReq { sDestination = ["charges"] }
@@ -202,7 +202,7 @@ query' sReq = do
 --   Stripe submodules, which supply the request values accordingly. However,
 --   it can also be used directly. E.g.,
 --
--- > let conf = SConfig "key" "CA file"
+-- > let conf = StripeConfig "key" "CA file"
 -- >
 -- > runStripeT conf $
 -- >    query baseSReq { sDestination = ["charges"] }
@@ -236,7 +236,7 @@ setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeader
 -- | Transforms a 'StripeRequest' into a more general 'URI', which can be used to
 --   make an authenticated query to the Stripe server.
 --   _TODO there is lots of sloppy Text <-> String stuff here.. should fix
-prepRq :: Monad m => SConfig -> StripeRequest -> Maybe (Request m)
+prepRq :: Monad m => StripeConfig -> StripeRequest -> Maybe (Request m)
 prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $
     (addBodyUa req) { queryString = renderQuery False qs
                     , method = renderStdMethod $ sMethod sReq
@@ -256,13 +256,13 @@ prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $
 
 -- | Given an HTTP status code and the response body as input, this function
 --   determines whether or not the status code represents an error as
---   per Stripe\'s REST API documentation. If it does, 'SFailure' is thrown as
+--   per Stripe\'s REST API documentation. If it does, 'StripeFailure' is thrown as
 --   an error. Otherwise, 'StripeResponseCode' is returned, representing the status
 --   of the request.
 --
 --   If an error is encountered, this function will attempt to decode the
 --   response body with 'errorMsg' to retrieve (and return) an explanation with
---   the 'SFailure'.
+--   the 'StripeFailure'.
 toCode :: Monad m => Status -> BL.ByteString -> StripeT m StripeResponseCode
 toCode c body = case statusCode c of
     -- Successes
@@ -280,12 +280,12 @@ toCode c body = case statusCode c of
     i   -> return $ Unknown i
   where e = errorMsg body
 
--- | Converts a 'String'-represented error code into the 'SErrorCode' data
+-- | Converts a 'String'-represented error code into the 'StripeErrorCode' data
 --   type to more descriptively classify errors.
 --
 --   If the string does not represent a known error code, 'UnknownErrorCode'
 --   will be returned with the raw text representing the error code.
-toCECode :: T.Text -> SErrorCode
+toCECode :: T.Text -> StripeErrorCode
 toCECode c = case T.map toLower c of
     "invalid_number"        -> InvalidNumber
     "incorrect_number"      -> IncorrectNumber
@@ -332,6 +332,6 @@ instance FromJSON StripeError where
 
 -- | Defines the behavior for more general error messages that can be thrown
 --   with 'noMsg' and 'strMsg' in combination with 'throwError'.
-instance Error SFailure where
+instance Error StripeFailure where
     noMsg  = OtherFailure Nothing
     strMsg = OtherFailure . Just . T.pack

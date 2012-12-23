@@ -20,7 +20,7 @@ module Web.Stripe.Customer
     , Offset(..)
     , Description(..)
     , UTCTime(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(StripeT)
     , runStripeT
     ) where
@@ -32,7 +32,7 @@ import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import           Data.Maybe          (fromMaybe)
 import qualified Data.Text           as T
 import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
-import           Web.Stripe.Client   (SConfig (..), StdMethod (..),
+import           Web.Stripe.Client   (StdMethod (..), StripeConfig (..),
                                       StripeRequest (..), StripeT (..),
                                       baseSReq, query, queryData, runStripeT)
 import           Web.Stripe.Coupon   (CpnId (..))
