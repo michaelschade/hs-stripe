@@ -7,6 +7,7 @@ module Web.Stripe.Connect
 
     , APIKey(..)
     , StripeConnectTokens(..)
+    , AuthCode
     ) where
 
 
