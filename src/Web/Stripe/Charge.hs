@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Web.Stripe.Charge
     ( Charge(..)
     , ChargeId(..)
@@ -20,28 +22,28 @@ module Web.Stripe.Charge
     , Description(..)
     , Offset(..)
     , UTCTime(..)
-    , SConfig(..)
+    , StripeConfig(..)
     , StripeT(StripeT)
     , runStripeT
     ) where
 
-import Control.Applicative  ( (<$>) )
-import Control.Monad        ( liftM, ap )
-import Control.Monad.Error  ( MonadIO, throwError, strMsg )
-import Network.HTTP.Types   ( StdMethod(..) )
-import Text.JSON            ( Result(Error), JSON(..), JSValue(JSObject)
-                            , resultToEither, valFromObj
-                            )
-import Web.Stripe.Card      ( Card, RequestCard, rCardKV )
-import Web.Stripe.Customer  ( Customer(..), CustomerId(..) )
-import Web.Stripe.Client    ( StripeT(..), SConfig(..), SRequest(..), baseSReq
-                            , query, runStripeT
-                            )
-import Web.Stripe.Token     ( Token(..), TokenId(..) )
-import Web.Stripe.Utils     ( Amount(..), Count(..), Currency(..)
-                            , Description(..), Offset(..), UTCTime(..)
-                            , fromSeconds, jGet, mjGet, optionalArgs
-                            )
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (liftM, mzero)
+import           Control.Monad.Error (MonadIO)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
+import qualified Data.ByteString     as B
+import qualified Data.Text           as T
+import           Network.HTTP.Types  (StdMethod (..))
+import           Web.Stripe.Card     (Card, RequestCard, rCardKV)
+import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
+                                      StripeT (..), baseSReq, query, queryData,
+                                      runStripeT)
+import           Web.Stripe.Customer (Customer (..), CustomerId (..))
+import           Web.Stripe.Token    (Token (..), TokenId (..))
+import           Web.Stripe.Utils    (Amount (..), Count (..), Currency (..),
+                                      Description (..), Offset (..),
+                                      UTCTime (..), fromSeconds, optionalArgs,
+                                      showByteString, textToByteString)
 
 ----------------
 -- Data Types --
@@ -62,7 +64,7 @@ data Charge = Charge
     } deriving Show
 
 -- | Represents the identifier for a given 'Charge' in the Stripe system.
-newtype ChargeId = ChargeId { unChargeId :: String } deriving Show
+newtype ChargeId = ChargeId { unChargeId :: T.Text } deriving Show
 
 -- | Submit a 'Charge' to the Stripe API using an already constructed 'Token'.
 chargeToken :: MonadIO m => Token -> Amount -> Currency
@@ -72,7 +74,7 @@ chargeToken  = chargeTokenById . tokId
 -- | Submit a 'Charge' to the Stripe API using a 'TokenId'.
 chargeTokenById :: MonadIO m => TokenId -> Amount -> Currency
                 -> Maybe Description -> StripeT m Charge
-chargeTokenById (TokenId tid) = charge [("card", tid)]
+chargeTokenById (TokenId tid) = charge [("card", textToByteString tid)]
 
 -- | Submit a 'Charge' to the Stripe for a specific 'Customer' that already has
 --   payment details on file.
@@ -84,7 +86,7 @@ chargeCustomer  = chargeCustomerById . custId
 --   its 'CustomerId', that already has payment details on file.
 chargeCustomerById :: MonadIO m => CustomerId -> Amount -> Currency
                    -> Maybe Description -> StripeT m Charge
-chargeCustomerById (CustomerId cid) = charge [("customer", cid)]
+chargeCustomerById (CustomerId cid) = charge [("customer", textToByteString cid)]
 
 -- | Submit a 'Charge' to the Stripe API using a 'RequestCard' to describe
 --   payment details.
@@ -94,15 +96,15 @@ chargeRCard rc = charge (rCardKV rc)
 
 -- | Internal convenience function to handle actually submitting a 'Charge'
 --   request to the Stripe API.
-charge :: MonadIO m => [(String, String)] -> Amount -> Currency
+charge :: MonadIO m => [(B.ByteString, B.ByteString)] -> Amount -> Currency
        -> Maybe Description -> StripeT m Charge
 charge adata a c mcd =
     snd `liftM` query (chargeRq []) { sMethod = POST, sData = fdata }
     where
-        fdata = head (optionalArgs odata) : adata ++ bdata
-        odata = [ ("description",   unDescription <$> mcd) ]
-        bdata = [ ("amount",        show . unAmount $ a)
-                , ("currency",      unCurrency c)
+        fdata = optionalArgs odata ++ adata ++ bdata
+        odata = [ ("description", textToByteString . unDescription <$> mcd) ]
+        bdata = [ ("amount",      showByteString . unAmount $ a)
+                , ("currency",    textToByteString $ unCurrency c)
                 ]
 
 -- | Retrieve a 'Charge' from the Stripe API, identified by 'ChargeId'.
@@ -117,15 +119,14 @@ getCharge (ChargeId cid) = snd `liftM` query (chargeRq [cid])
 --      * 'Customer'.
 getCharges :: MonadIO m => Maybe CustomerId -> Maybe Count -> Maybe Offset
            -> StripeT m [Charge]
-getCharges mcid mc mo = do
-    (_, rsp) <- query $ (chargeRq []) { sQString = optionalArgs oqs }
-    either err return . resultToEither . valFromObj "data" $ rsp
-    where
-        oqs   = [ ("count",     show . unCount  <$> mc)
-                , ("offset",    show . unOffset <$> mo)
-                , ("customer",  unCustomerId    <$> mcid)
-                ]
-        err _ = throwError $ strMsg "Unable to parse charge list."
+getCharges mcid mc mo = liftM snd $
+                        queryData ((chargeRq []) { sQString = optionalArgs oqs })
+  where
+    oqs   = [ ("count",     show . unCount  <$> mc)
+            , ("offset",    show . unOffset <$> mo)
+            , ("customer",  T.unpack . unCustomerId    <$> mcid)
+            ]
+        -- err   = throwError $ strMsg "Unable to parse charge list."
 
 -- | Requests that Stripe issue a partial refund to a specific 'Charge' for a
 --   particular 'Amount'.
@@ -151,11 +152,11 @@ fullRefundById cid = refundChargeById cid Nothing
 refundChargeById :: MonadIO m => ChargeId -> Maybe Amount -> StripeT m Charge
 refundChargeById (ChargeId cid) ma =
     snd `liftM` query (chargeRq [cid, "refund"]) { sMethod = POST, sData = fd }
-    where fd = optionalArgs [("amount", show . unAmount <$> ma)]
+    where fd = optionalArgs [("amount", showByteString . unAmount <$> ma)]
 
--- | Convenience function to create a 'SRequest' specific to coupon-related
+-- | Convenience function to create a 'StripeRequest' specific to coupon-related
 --   actions.
-chargeRq :: [String] -> SRequest
+chargeRq :: [T.Text] -> StripeRequest
 chargeRq pcs = baseSReq { sDestination = "charges":pcs }
 
 ------------------
@@ -163,17 +164,16 @@ chargeRq pcs = baseSReq { sDestination = "charges":pcs }
 ------------------
 
 -- | Attempts to parse JSON into a 'Charge'.
-instance JSON Charge where
-    readJSON (JSObject c) =
-        Charge `liftM` (ChargeId          <$> jGet  c "id")
-                  `ap` (fromSeconds       <$> jGet  c "created")
-                  `ap` ((Description <$>) <$> mjGet c "description")
-                  `ap` (Currency          <$> jGet  c "currency")
-                  `ap` (Amount            <$> jGet  c "amount")
-                  `ap` jGet  c "fee"
-                  `ap` jGet  c "livemode"
-                  `ap` jGet  c "paid"
-                  `ap` jGet  c "refunded"
-                  `ap` jGet  c "card"
-    readJSON _ = Error "Unable to read Stripe charge."
-    showJSON _ = undefined
+instance FromJSON Charge where
+    parseJSON (Object v) = Charge
+        <$> (ChargeId <$> v .: "id")
+        <*> (fromSeconds       <$> v .: "created")
+        <*> ((Description <$>) <$> v .:? "description")
+        <*> (Currency          <$> v .: "currency")
+        <*> (Amount            <$> v .: "amount")
+        <*> v .: "fee"
+        <*> v .: "livemode"
+        <*> v .: "paid"
+        <*> v .: "refunded"
+        <*> v .: "card"
+    parseJSON _ = mzero

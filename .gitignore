@@ -1,3 +1,5 @@
 dist/
+dist_*/
 .DS_Store
 *.swp
+.hsenv
