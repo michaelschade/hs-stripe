@@ -29,7 +29,7 @@ import           Control.Monad.Error   (Error, ErrorT, MonadError, MonadIO,
 import           Control.Monad.State   (MonadState, StateT, get, runStateT)
 import           Control.Monad.Trans   (liftIO)
 import           Data.Aeson            (FromJSON (..), Value (..), decode',
-                                        (.:), (.:?))
+                                        eitherDecode', (.:), (.:?))
 import           Data.Aeson.Types      (parseMaybe)
 import qualified Data.ByteString       as B
 import qualified Data.ByteString.Char8 as C8
@@ -43,7 +43,7 @@ import           Network.HTTP.Types
 import           Web.Stripe.Utils      (textToByteString)
 
 ------------------------
--- General Data T\ypes --
+-- General Data Types --
 ------------------------
 
 -- | Configuration for the 'StripeT' monad transformer.
@@ -208,12 +208,12 @@ query' sReq = do
 -- >    query baseSReq { sDestination = ["charges"] }
 query :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
 query req = query' req >>= \(code, ans) ->
-    maybe (throwError $ strMsg "could not parse JSON") (return . (code, )) $ decode' ans
+    either (throwError . strMsg) (return . (code, )) $ eitherDecode' ans
 
 -- | same as `query` but pulls out the value inside a data field and returns that
 queryData :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
 queryData req = query' req >>= \(code, ans) -> do
-    val <- maybe (throwError $ strMsg "could not parse JSON") return $ decode' ans
+    val <- either (throwError . strMsg) return $ eitherDecode' ans
     case val of
         Object o -> do
             objVal <- maybe (throwError $ strMsg "no data in json" ) return $

@@ -39,7 +39,7 @@ import           Web.Stripe.Coupon   (CpnId (..))
 import           Web.Stripe.Plan     (PlanId (..))
 import           Web.Stripe.Token    (TokenId (..))
 import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
-                                      UTCTime (..), optionalArgs,
+                                      UTCTime (..), fromSeconds, optionalArgs,
                                       showByteString, textToByteString)
 
 ----------------
@@ -176,6 +176,6 @@ instance FromJSON Customer where
         <*> (Email        <$> o .: "email")
         <*> (fmap . fmap) Description  (o .:? "description")
         <*> o .: "livemode"
-        <*> o .: "created"
+        <*> (fromSeconds <$> o .: "created")
         <*> o .:? "active_card"
     parseJSON _ = mzero
