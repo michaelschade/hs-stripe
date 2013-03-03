@@ -36,8 +36,8 @@ type ClientId = ByteString
 type AuthCode = ByteString
 
 data StripeConnectException = StripeConnectException String deriving (Show, Eq, Typeable)
-data Scope = ReadOnly | ReadWrite
-data Landing = Login | Register
+data Scope = ReadOnly | ReadWrite deriving Eq
+data Landing = Login | Register deriving Eq
 data StripeConnectTokens = StripeConnectTokens
     { scAccessToken  :: AccessToken
     , scRefreshToken :: RefreshToken

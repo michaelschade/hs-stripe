@@ -64,7 +64,7 @@ data Charge = Charge
     } deriving Show
 
 -- | Represents the identifier for a given 'Charge' in the Stripe system.
-newtype ChargeId = ChargeId { unChargeId :: T.Text } deriving Show
+newtype ChargeId = ChargeId { unChargeId :: T.Text } deriving (Show, Eq)
 
 -- | Submit a 'Charge' to the Stripe API using an already constructed 'Token'.
 chargeToken :: MonadIO m => Token -> Amount -> Currency

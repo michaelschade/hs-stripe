@@ -48,7 +48,7 @@ data Coupon = Coupon
     } deriving Show
 
 -- | Represents the identifier for a given 'Coupon' in the Stripe system.
-newtype CpnId = CpnId { unCpnId :: T.Text } deriving Show
+newtype CpnId = CpnId { unCpnId :: T.Text } deriving (Show, Eq)
 
 -- | Represents the duration of a coupon. If an interval identifier is not
 --   known, 'UnknownDuration' is used to carry the original identifier supplied
@@ -58,19 +58,19 @@ data CpnDuration
     | Repeating Int -- ^ Field specifies how long (months) discount is in effect
     | Forever
     | UnknownDuration T.Text
-    deriving Show
+    deriving (Show, Eq)
 
 -- | Represents the percent off that is applied by a coupon. This must be
 --   between 1 and 100.
-newtype CpnPercentOff = CpnPercentOff { unCpnPercentOff :: Int } deriving Show
+newtype CpnPercentOff = CpnPercentOff { unCpnPercentOff :: Int } deriving (Show, Eq)
 
 -- | A positive number representing the maximum number of times that a coupon
 --   can be redeemed.
-newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving Show
+newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving (Show, Eq)
 
 -- | UTC timestamp specifying the last time at which the coupon can be
 --   redeemed.
-newtype CpnRedeemBy = CpnRedeemBy { unCpnRedeemBy :: Int } deriving Show
+newtype CpnRedeemBy = CpnRedeemBy { unCpnRedeemBy :: Int } deriving (Show, Eq)
 
 -- | Creates a 'Coupon' in the Stripe system.
 createCoupon
