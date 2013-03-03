@@ -95,8 +95,8 @@ getAccessToken key code = do
             }
 
 
-statusCodeChecker :: Show a => Status -> a -> Maybe SomeException
-statusCodeChecker s@(Status c _) h
+statusCodeChecker :: (Show a, Show b) => Status -> a -> b -> Maybe SomeException
+statusCodeChecker s@(Status c _) h _
     | 200 <= c && c < 300 = Nothing
     | otherwise = Just . SomeException . StripeConnectException $ show s ++ show h
 
