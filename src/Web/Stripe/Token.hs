@@ -5,6 +5,7 @@ module Web.Stripe.Token
     , TokenId(..)
     , createToken
     , getToken
+    , tokRq
 
     {- Re-Export -}
     , UTCTime(..)
@@ -19,7 +20,7 @@ module Web.Stripe.Token
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (liftM, mzero)
 import           Control.Monad.Error (MonadIO)
-import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import qualified Data.Text           as T
 import           Network.HTTP.Types  (StdMethod (..))
 import           Web.Stripe.Card     (Card (..), RequestCard (..), rCardKV)
@@ -39,8 +40,8 @@ data Token = Token
     , tokLive     :: Bool
     , tokUsed     :: Bool
     , tokCreated  :: UTCTime
-    , tokAmount   :: Amount
-    , tokCurrency :: Currency
+    , tokAmount   :: Maybe Amount
+    , tokCurrency :: Maybe Currency
     , tokCard     :: Card
     } deriving Show
 
@@ -77,7 +78,7 @@ instance FromJSON Token where
       <*> o .: "livemode"
       <*> o .: "used"
       <*> (fromSeconds  <$> o .: "created")
-      <*> (Amount       <$> o .: "amount")
-      <*> (Currency     <$> o .: "currency")
+      <*> ((Amount <$>)       <$> o .:? "amount")
+      <*> ((Currency <$>)     <$> o .:? "currency")
       <*> o .: "card"
     parseJSON _ = mzero
