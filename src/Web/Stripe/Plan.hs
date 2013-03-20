@@ -52,14 +52,14 @@ data Plan = Plan
 -- | Represents the billing cycle for a plan. If an interval identifier is not
 --   known, 'UnknownPlan' is used to carry the original identifier supplied by
 --   Stripe.
-data PlanInterval = Monthly | Yearly | UnknownPlan T.Text deriving Show
+data PlanInterval = Monthly | Yearly | UnknownPlan T.Text deriving (Show, Eq)
 
 -- | Represents the identifier for a given 'Plan' in the Stripe system.
-newtype PlanId = PlanId { unPlanId :: T.Text } deriving Show
+newtype PlanId = PlanId { unPlanId :: T.Text } deriving (Show, Eq)
 
 -- | Represents the length of the trial period. That is, the number of days
 --   before the customer is billed.
-newtype PlanTrialDays = PlanTrialDays { unPlanTrialDays :: Int } deriving Show
+newtype PlanTrialDays = PlanTrialDays { unPlanTrialDays :: Int } deriving (Show, Eq)
 
 -- | Creates a 'Plan' in the Stripe system.
 createPlan :: MonadIO m => Plan -> StripeT m ()

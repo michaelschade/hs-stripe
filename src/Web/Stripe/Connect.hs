@@ -48,8 +48,8 @@ type AuthCode = ByteString
 
 newtype StripeConnectException = StripeConnectException String deriving (Show, Eq, Typeable)
 
-data Scope = ReadOnly | ReadWrite
-data Landing = Login | Register
+data Scope = ReadOnly | ReadWrite deriving Eq
+data Landing = Login | Register deriving Eq
 data StripeConnectTokens = StripeConnectTokens
     { scAccessToken  :: AccessToken
     , scRefreshToken :: RefreshToken
@@ -107,8 +107,8 @@ getAccessToken key code = do
             }
 
 
-statusCodeChecker :: Show a => Status -> a -> Maybe SomeException
-statusCodeChecker s@(Status c _) h
+statusCodeChecker :: (Show a, Show b) => Status -> a -> b -> Maybe SomeException
+statusCodeChecker s@(Status c _) h _
     | 200 <= c && c < 300 = Nothing
     | otherwise = Just . SomeException . StripeConnectException $ show s ++ show h
 

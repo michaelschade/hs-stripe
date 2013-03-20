@@ -46,7 +46,7 @@ data Token = Token
     } deriving Show
 
 -- | Represents the identifier for a given 'Token' in the Stripe system.
-newtype TokenId = TokenId { unTokenId :: T.Text } deriving Show
+newtype TokenId = TokenId { unTokenId :: T.Text } deriving (Show, Eq)
 
 -- | Creates a 'Token' in the Stripe system.
 createToken :: MonadIO m => RequestCard -> Maybe Amount -> Maybe Currency

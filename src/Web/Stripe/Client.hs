@@ -61,7 +61,7 @@ newtype APIKey = APIKey { unAPIKey :: T.Text } deriving Show
 --
 --   Please consult the official Stripe REST API documentation on error codes
 --   at <https://stripe.com/docs/api#errors> for more information.
-data StripeResponseCode = OK | Unknown Int deriving Show
+data StripeResponseCode = OK | Unknown Int deriving (Show, Eq)
 
 -- | This represents the possible failures that a connection to the Stripe API
 --   can encounter.
@@ -78,7 +78,7 @@ data StripeFailure
     | ServiceUnavailable    (Maybe StripeError)
     | GatewayTimeout        (Maybe StripeError)
     | OtherFailure          (Maybe Text)
-    deriving Show
+    deriving (Show, Eq)
 
 -- | Describes a 'StripeFailure' in more detail, categorizing the error and
 --   providing additional information about it. At minimum, this is a message,
@@ -96,7 +96,7 @@ data StripeError
     | APIError      Text
     | CardError     Text StripeErrorCode (Maybe Text) -- message, code, params
     | UnknownError  Text Text  -- type, message
-    deriving Show
+    deriving (Show, Eq)
 
 -- | Attempts to describe a 'CardError' in more detail, classifying in what
 --   specific way it failed.
@@ -117,7 +117,7 @@ data StripeErrorCode
     | DuplicateTransaction
     | ProcessingError
     | UnknownErrorCode Text -- ^ Could not be matched; text gives error name.
-    deriving Show
+    deriving (Show, Eq)
 
 -- | Represents a request to the Stripe API, providing the fields necessary to
 --   specify a Stripe resource. More generally, 'baseSReq' will be desired as
@@ -191,7 +191,7 @@ query' :: MonadIO m => StripeRequest -> StripeT m (StripeResponseCode, BL.ByteSt
 query' sReq = do
     cfg  <- get
     req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
-    let req = req' {checkStatus = \_ _ -> Nothing}
+    let req = req' {checkStatus = \_ _ _ -> Nothing}
     -- _TODO we should be able to pass in a manager rather thanusing the default manager
     rsp  <- liftIO . withManager $ httpLbs req
     code <- toCode (responseStatus rsp) (responseBody rsp)

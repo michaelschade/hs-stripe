@@ -38,22 +38,22 @@ stringToByteString = B.pack . CodecUtf8.encode
 -----------------------
 
 -- | Represents an amount in cents in the Stripe system.
-newtype Amount = Amount { unAmount :: Int } deriving Show
+newtype Amount = Amount { unAmount :: Int } deriving (Show, Eq)
 
 -- | A maximum number of objects that the Stripe API will return. This value
 --   should be between 1 and 100, inclusive.
-newtype Count = Count { unCount :: Int } deriving Show
+newtype Count = Count { unCount :: Int } deriving (Show, Eq)
 
 -- | Represents a currency (e.g., "usd") in the Stripe system. This is
 --   a 3-letter ISO code.
-newtype Currency = Currency { unCurrency :: T.Text } deriving Show
+newtype Currency = Currency { unCurrency :: T.Text } deriving (Show, Eq)
 
 -- | Describes an object in the Stripe system.
-newtype Description = Description { unDescription :: T.Text } deriving Show
+newtype Description = Description { unDescription :: T.Text } deriving (Show, Eq)
 
 -- | A positive integer that is an offset into the array of objects returned
 --   by the Stripe API.
-newtype Offset = Offset { unOffset :: Int } deriving Show
+newtype Offset = Offset { unOffset :: Int } deriving (Show, Eq)
 
 -----------------------
 -- Utility Functions --

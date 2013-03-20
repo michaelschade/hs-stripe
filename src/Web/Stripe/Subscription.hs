@@ -54,20 +54,20 @@ data Subscription = Subscription
 
 -- | Describes the various stages that a
 data SubStatus = Trialing | Active | PastDue | Unpaid | Canceled
-               | UnknownStatus T.Text deriving Show
+               | UnknownStatus T.Text deriving (Show, Eq)
 
 -- | A boolean flag that determines whether or not to prorate switching plans
 --   during a billing cycle.
-newtype SubProrate = SubProrate { unSubProrate :: Bool } deriving Show
+newtype SubProrate = SubProrate { unSubProrate :: Bool } deriving (Show, Eq)
 
 -- | UTC integer timestamp representing the end of the trial period that the
 --   customer receives before being charged for the first time.
-newtype SubTrialEnd = SubTrialEnd { unSubTrialEnd :: Int } deriving Show
+newtype SubTrialEnd = SubTrialEnd { unSubTrialEnd :: Int } deriving (Show, Eq)
 
 -- | A boolean flag that determines whether or not the cancellation of the
 --   'Subscription' should be delayed until the end of the current period.
 newtype SubAtPeriodEnd = SubAtPeriodEnd { unSubAtPeriodEnd :: Bool }
-    deriving Show
+    deriving (Show, Eq)
 
 -- | Update the subscription associated with a 'Customer', identified by
 --   'CustomerId', in the Stripe system.

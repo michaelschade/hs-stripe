@@ -57,10 +57,10 @@ data Customer = Customer
     } deriving Show
 
 -- | Represents a 'Customer'\'s ID in the Stripe system.
-newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving Show
+newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving (Show, Eq)
 
 -- | Represents a standard email address.
-newtype Email = Email { unEmail :: T.Text } deriving Show
+newtype Email = Email { unEmail :: T.Text } deriving (Show, Eq)
 
 -- | Create a new 'Customer' in the Stripe system.
 createCustomer  :: MonadIO m => Maybe RequestCard -> Maybe CpnId -> Maybe Email
