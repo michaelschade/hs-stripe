@@ -15,6 +15,7 @@ module Web.Stripe.Connect
     , RefreshToken
     , UserId
     , ClientId
+    , URL
     ) where
 
 

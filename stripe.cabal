@@ -28,7 +28,7 @@ Library
                         , Web.Stripe.Token
                         , Web.Stripe.Utils
     Build-depends:        base          >= 3 && < 5
-                        , text          == 0.11.*
+                        , text          >= 0.11
                         , aeson         >= 0.6.1
                         , unordered-containers >= 0.1.4.6
                         , time          >= 1.0
