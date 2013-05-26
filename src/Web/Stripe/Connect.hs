@@ -59,8 +59,8 @@ data StripeConnectTokens = StripeConnectTokens
 
 
 -- URIs ------------------------------------------------------------------------
-authURL :: ClientId -> Maybe Scope -> Maybe Text -> Maybe Landing -> URL
-authURL clientId mScope mState mLanding =
+authURL :: Maybe Scope -> Maybe Text -> Maybe Landing -> ClientId -> URL
+authURL mScope mState mLanding clientId =
     B.append "https://connect.stripe.com/oauth/authorize" q
     where q = renderQuery True
               [ ("response_type", Just "code")
@@ -92,6 +92,7 @@ refreshTokenQuery mScope token =
 
 
 -- HTTP ------------------------------------------------------------------------
+-- TODO getAccessToken should get the APIKey from the StripeT monad.
 getAccessToken :: APIKey -> AuthCode -> IO (Maybe StripeConnectTokens)
 getAccessToken key code = do
   req <- updateHeaders <$> parseUrl (B.unpack accessTokenURL)
