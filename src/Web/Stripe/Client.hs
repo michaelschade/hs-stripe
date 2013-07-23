@@ -191,7 +191,7 @@ query' :: MonadIO m => StripeRequest -> StripeT m (StripeResponseCode, BL.ByteSt
 query' sReq = do
     cfg  <- get
     req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
-    let req = req' {checkStatus = \_ _ _ -> Nothing}
+    let req = req' {checkStatus = \_ _ _ -> Nothing, responseTimeout = Just 10000000}
     -- _TODO we should be able to pass in a manager rather thanusing the default manager
     rsp  <- liftIO . withManager $ httpLbs req
     code <- toCode (responseStatus rsp) (responseBody rsp)
