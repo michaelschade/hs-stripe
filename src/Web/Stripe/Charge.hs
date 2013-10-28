@@ -56,7 +56,6 @@ data Charge = Charge
     , chargeDescription :: Maybe Description
     , chargeCurrency    :: Currency
     , chargeAmount      :: Amount
-    , chargeFee         :: Amount
     , chargeLive        :: Bool
     , chargePaid        :: Bool
     , chargeRefunded    :: Bool
@@ -173,7 +172,6 @@ instance FromJSON Charge where
         <*> ((Description <$>) <$> v .:? "description")
         <*> (Currency          <$> v .: "currency")
         <*> (Amount            <$> v .: "amount")
-        <*> (Amount            <$> v .: "fee")
         <*> v .: "livemode"
         <*> v .: "paid"
         <*> v .: "refunded"
