@@ -5,6 +5,7 @@ module Web.Stripe.Token
     , TokenId(..)
     , createToken
     , getToken
+    , tokRq
 
     {- Re-Export -}
     , UTCTime(..)
@@ -26,8 +27,7 @@ import           Web.Stripe.Card     (Card (..), RequestCard (..), rCardKV)
 import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, runStripeT)
 import           Web.Stripe.Utils    (Amount (..), Currency (..), UTCTime (..),
-                                      fromSeconds, optionalArgs, showByteString,
-                                      textToByteString)
+                                      fromSeconds)
 
 ----------------
 -- Data Types --
@@ -35,28 +35,20 @@ import           Web.Stripe.Utils    (Amount (..), Currency (..), UTCTime (..),
 
 -- | Represents a token in the Stripe system.
 data Token = Token
-    { tokId       :: TokenId
-    , tokLive     :: Bool
-    , tokUsed     :: Bool
-    , tokCreated  :: UTCTime
-    , tokAmount   :: Amount
-    , tokCurrency :: Currency
-    , tokCard     :: Card
+    { tokId      :: TokenId
+    , tokLive    :: Bool
+    , tokUsed    :: Bool
+    , tokCreated :: UTCTime
+    , tokCard    :: Card
     } deriving Show
 
 -- | Represents the identifier for a given 'Token' in the Stripe system.
 newtype TokenId = TokenId { unTokenId :: T.Text } deriving (Show, Eq)
 
 -- | Creates a 'Token' in the Stripe system.
-createToken :: MonadIO m => RequestCard -> Maybe Amount -> Maybe Currency
-                         -> StripeT m Token
-createToken rc ma mc =
-    snd `liftM` query (tokRq []) { sMethod = POST, sData = fdata }
-    where
-        fdata   = rCardKV rc ++ optionalArgs mdata
-        mdata   = [ ("amount",   showByteString . unAmount <$> ma)
-                  , ("currency", textToByteString . unCurrency <$> mc)
-                  ]
+createToken :: MonadIO m => RequestCard -> StripeT m Token
+createToken rc =
+    snd `liftM` query (tokRq []) { sMethod = POST, sData = rCardKV rc }
 
 -- | Retrieves a specific 'Token' based on its 'Token'.
 getToken :: MonadIO m => TokenId -> StripeT m Token
@@ -77,7 +69,5 @@ instance FromJSON Token where
       <*> o .: "livemode"
       <*> o .: "used"
       <*> (fromSeconds  <$> o .: "created")
-      <*> (Amount       <$> o .: "amount")
-      <*> (Currency     <$> o .: "currency")
       <*> o .: "card"
     parseJSON _ = mzero

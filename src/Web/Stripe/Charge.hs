@@ -56,7 +56,6 @@ data Charge = Charge
     , chargeDescription :: Maybe Description
     , chargeCurrency    :: Currency
     , chargeAmount      :: Amount
-    , chargeFee         :: Int
     , chargeLive        :: Bool
     , chargePaid        :: Bool
     , chargeRefunded    :: Bool
@@ -68,41 +67,43 @@ newtype ChargeId = ChargeId { unChargeId :: T.Text } deriving (Show, Eq)
 
 -- | Submit a 'Charge' to the Stripe API using an already constructed 'Token'.
 chargeToken :: MonadIO m => Token -> Amount -> Currency
-            -> Maybe Description -> StripeT m Charge
+            -> Maybe Description -> Maybe Amount -> StripeT m Charge
 chargeToken  = chargeTokenById . tokId
 
 -- | Submit a 'Charge' to the Stripe API using a 'TokenId'.
 chargeTokenById :: MonadIO m => TokenId -> Amount -> Currency
-                -> Maybe Description -> StripeT m Charge
+                -> Maybe Description -> Maybe Amount -> StripeT m Charge
 chargeTokenById (TokenId tid) = charge [("card", textToByteString tid)]
 
 -- | Submit a 'Charge' to the Stripe for a specific 'Customer' that already has
 --   payment details on file.
 chargeCustomer :: MonadIO m => Customer -> Amount -> Currency
-               -> Maybe Description -> StripeT m Charge
+               -> Maybe Description -> Maybe Amount -> StripeT m Charge
 chargeCustomer  = chargeCustomerById . custId
 
 -- | Submit a 'Charge' to the Stripe for a specific 'Customer', identified by
 --   its 'CustomerId', that already has payment details on file.
 chargeCustomerById :: MonadIO m => CustomerId -> Amount -> Currency
-                   -> Maybe Description -> StripeT m Charge
+                   -> Maybe Description -> Maybe Amount -> StripeT m Charge
 chargeCustomerById (CustomerId cid) = charge [("customer", textToByteString cid)]
 
 -- | Submit a 'Charge' to the Stripe API using a 'RequestCard' to describe
 --   payment details.
 chargeRCard :: MonadIO m => RequestCard -> Amount -> Currency
-            -> Maybe Description -> StripeT m Charge
+            -> Maybe Description -> Maybe Amount -> StripeT m Charge
 chargeRCard rc = charge (rCardKV rc)
 
 -- | Internal convenience function to handle actually submitting a 'Charge'
 --   request to the Stripe API.
 charge :: MonadIO m => [(B.ByteString, B.ByteString)] -> Amount -> Currency
-       -> Maybe Description -> StripeT m Charge
-charge adata a c mcd =
+       -> Maybe Description -> Maybe Amount -> StripeT m Charge
+charge adata a c mcd maf =
     snd `liftM` query (chargeRq []) { sMethod = POST, sData = fdata }
     where
         fdata = optionalArgs odata ++ adata ++ bdata
-        odata = [ ("description", textToByteString . unDescription <$> mcd) ]
+        odata = [ ("description", textToByteString . unDescription <$> mcd)
+                , ("application_fee", showByteString . unAmount <$> maf)
+                ]
         bdata = [ ("amount",      showByteString . unAmount $ a)
                 , ("currency",    textToByteString $ unCurrency c)
                 ]
@@ -171,7 +172,6 @@ instance FromJSON Charge where
         <*> ((Description <$>) <$> v .:? "description")
         <*> (Currency          <$> v .: "currency")
         <*> (Amount            <$> v .: "amount")
-        <*> v .: "fee"
         <*> v .: "livemode"
         <*> v .: "paid"
         <*> v .: "refunded"
