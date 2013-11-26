@@ -26,6 +26,7 @@ module Web.Stripe.Client
 import           Control.Monad         (MonadPlus, join, liftM, mzero)
 import           Control.Monad.Error   (Error, ErrorT, MonadError, MonadIO,
                                         noMsg, runErrorT, strMsg, throwError)
+import           Control.Exception     as EX
 import           Control.Monad.State   (MonadState, StateT, get, runStateT)
 import           Control.Monad.Trans   (liftIO)
 import           Data.Aeson            (FromJSON (..), Value (..), decode',
@@ -77,6 +78,7 @@ data StripeFailure
     | BadGateway            (Maybe StripeError)
     | ServiceUnavailable    (Maybe StripeError)
     | GatewayTimeout        (Maybe StripeError)
+    | HttpFailure           (Maybe Text)
     | OtherFailure          (Maybe Text)
     deriving (Show, Eq)
 
@@ -193,9 +195,12 @@ query' sReq = do
     req' <- maybe (throwError $ strMsg  "Error Prepating the Request") return (prepRq cfg sReq)
     let req = req' {checkStatus = \_ _ _ -> Nothing, responseTimeout = Just 10000000}
     -- _TODO we should be able to pass in a manager rather thanusing the default manager
-    rsp  <- liftIO . withManager $ httpLbs req
-    code <- toCode (responseStatus rsp) (responseBody rsp)
-    return (code, responseBody rsp)
+    rsp'  <- liftIO (EX.catch (fmap Right $ withManager $ httpLbs req) (return . Left))
+    case rsp' of
+      Left err -> throwError (HttpFailure $ Just (T.pack (show (err :: HttpException))))
+      Right rsp -> do
+        code <- toCode (responseStatus rsp) (responseBody rsp)
+        return (code, responseBody rsp)
 
 -- | Queries the Stripe API and attempts to parse the results into a data type
 --   that is an instance of 'JSON'. This is primarily for internal use by other
