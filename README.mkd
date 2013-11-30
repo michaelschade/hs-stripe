@@ -1,10 +1,4 @@
-Created by [Michael Schade](http://mschade.me/)
-([@michaelschade](https://twitter.com/intent/user?screen_name=michaelschade)).
-
-Description
-===========
-
-This is an *unofficial* Haskell implementation of the [Stripe API][sapi].
+This is an unofficial Haskell implementation of the [Stripe API][sapi].
 
 **Note** that this has worked in my tests, but I have not used it in production
 yet. Try it thoroughly and let me know if you
@@ -66,9 +60,16 @@ If all of that fails, or if you otherwise think it's an issue with this
 implementation of the API, please submit an issue here. Better yet, submit
 a pull request with a proposed solution!
 
+Contributors
+============
+
+* [Michael Schade](https://twitter.com/sch)
+* [Luke Hoersten](https://twitter.com/LukeHoersten)
+* [Max Cantor](https://twitter.com/maxcan)
+
 License
 =======
 
-I like the MIT license. See `LICENSE`.
+We like the MIT license. See `LICENSE`.
 
 [sapi]: https://stripe.com/docs/api "Stripe API"
