@@ -6,7 +6,7 @@ Description:         This is an implementation of the Stripe API as it is
 License:             BSD3
 License-file:        LICENSE
 Author:              Spearhead Development, L.L.C.
-Maintainer:          Michael Schade <michael@spearheaddev.com>
+Maintainer:          Michael Schade <m@mschade.me>
 Copyright:           (c) 2011 Spearhead Development, L.L.C.
 Category:            Web
 Build-type:          Simple
