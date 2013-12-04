@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TupleSections              #-}
 
 module Web.Stripe.Client
@@ -23,10 +24,11 @@ module Web.Stripe.Client
     , StdMethod(..)
     ) where
 
+import           Control.Arrow         ((***))
+import           Control.Exception     as EX
 import           Control.Monad         (MonadPlus, join, liftM, mzero)
 import           Control.Monad.Error   (Error, ErrorT, MonadError, MonadIO,
                                         noMsg, runErrorT, strMsg, throwError)
-import           Control.Exception     as EX
 import           Control.Monad.State   (MonadState, StateT, get, runStateT)
 import           Control.Monad.Trans   (liftIO)
 import           Data.Aeson            (FromJSON (..), Value (..), decode',
@@ -49,8 +51,9 @@ import           Web.Stripe.Utils      (textToByteString)
 
 -- | Configuration for the 'StripeT' monad transformer.
 data StripeConfig = StripeConfig
-    { key    :: APIKey
-    , caFile :: FilePath
+    { key     :: APIKey
+    , caFile  :: FilePath
+    , version :: StripeVersion
     } deriving Show
 
 -- | A key used when authenticating to the Stripe API.
@@ -131,6 +134,15 @@ data StripeRequest = StripeRequest
     , sQString     :: [(String, String)]
     } deriving Show
 
+-- | Stripe Version
+-- Represents Stripe API Versions
+data StripeVersion = V20110915d
+                   | OtherVersion String -- * "Format: 2011-09-15-d"
+
+instance Show StripeVersion where
+    show V20110915d = "2011-09-15-d"
+    show (OtherVersion x) = x
+
 ------------------
 -- Stripe Monad --
 ------------------
@@ -165,7 +177,7 @@ runStripeT cfg m =
 --   leaves other fields blank. This is especially relavent due to the current
 --   CA file check bug.
 defaultConfig  :: APIKey -> StripeConfig
-defaultConfig k = StripeConfig k ""
+defaultConfig k = StripeConfig k "" V20110915d
 
 -- | The basic 'StripeRequest' environment upon which all other Stripe API requests
 --   will be built. Standard usage involves overriding one or more of the
@@ -241,19 +253,22 @@ setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeader
 -- | Transforms a 'StripeRequest' into a more general 'URI', which can be used to
 --   make an authenticated query to the Stripe server.
 --   _TODO there is lots of sloppy Text <-> String stuff here.. should fix
+
 prepRq :: Monad m => StripeConfig -> StripeRequest -> Maybe (Request m)
-prepRq cfg sReq = flip fmap mReq $ \req -> applyBasicAuth k p $
-    (addBodyUa req) { queryString = renderQuery False qs
-                    , method = renderStdMethod $ sMethod sReq
-                    }
+prepRq StripeConfig{..} StripeRequest{..} =
+    flip fmap mReq $ \req -> applyBasicAuth k p $ (addBodyUa req)
+    { queryString = renderQuery False qs
+    , requestHeaders = [ ("Stripe-Version", C8.pack . show $ version) ]
+    , method = renderStdMethod sMethod
+    }
   where
-    k = textToByteString . unAPIKey $ key cfg
+    k = textToByteString $ unAPIKey key
     p = textToByteString ""
-    addBodyUa = urlEncodedBody (sData sReq) . setUserAgent "hs-string/0.2 http-conduit"
-    mReq = parseUrl . T.unpack $ T.concat
-            [ "https://api.stripe.com:443/v1/"
-            , T.intercalate "/" (sDestination sReq) ]
-    qs  = map (\(a, b) -> (C8.pack a, Just $ C8.pack b)) $ sQString sReq
+    addBodyUa = urlEncodedBody sData . setUserAgent "hs-string/0.2 http-conduit"
+    mReq = parseUrl . T.unpack $ T.concat [
+            "https://api.stripe.com:443/v1/"
+           , T.intercalate "/" sDestination ]
+    qs  = map (C8.pack *** Just . C8.pack) sQString
 
 --------------------
 -- Error Handling --
