@@ -1,17 +1,22 @@
 Name:                stripe
-Version:             0.3.0.1
+Version:             0.3.0.2
 Synopsis:            A Haskell implementation of the Stripe API.
 Description:         This is an implementation of the Stripe API as it is
-                     documented at https://stripe.com/docs/api
+                     documented at https:\/\/stripe.com\/docs\/api
 License:             BSD3
 License-file:        LICENSE
 Author:              Spearhead Development, L.L.C.
 Maintainer:          Michael Schade <m@mschade.me>
 Copyright:           (c) 2011 Spearhead Development, L.L.C.
+Homepage:            https://github.com/michaelschade/hs-stripe
 Category:            Web
 Build-type:          Simple
 Extra-source-files:  README.mkd
 Cabal-version:       >=1.6
+
+Source-Repository   head
+  Type:             git
+  Location:         https://github.com/michaelschade/hs-stripe.git
 
 Library
   -- Modules exported by the library.
