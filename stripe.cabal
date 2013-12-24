@@ -2,16 +2,21 @@ Name:                stripe
 Version:             0.4.0.0
 Synopsis:            A Haskell implementation of the Stripe API.
 Description:         This is an implementation of the Stripe API as it is
-                     documented at https://stripe.com/docs/api
+                     documented at https:\/\/stripe.com\/docs\/api
 License:             BSD3
 License-file:        LICENSE
 Author:              Spearhead Development, L.L.C.
 Maintainer:          Michael Schade <m@mschade.me>
 Copyright:           (c) 2011 Spearhead Development, L.L.C.
+Homepage:            https://github.com/michaelschade/hs-stripe
 Category:            Web
 Build-type:          Simple
 Extra-source-files:  README.mkd
 Cabal-version:       >=1.6
+
+Source-Repository   head
+  Type:             git
+  Location:         https://github.com/michaelschade/hs-stripe.git
 
 Library
   -- Modules exported by the library.
@@ -27,14 +32,14 @@ Library
                         , Web.Stripe.Subscription
                         , Web.Stripe.Token
                         , Web.Stripe.Utils
-    Build-depends:        base          >= 3 && < 5
-                        , text          >= 0.11
-                        , aeson         >= 0.6.1
-                        , unordered-containers >= 0.1.4.6
-                        , time          >= 1.0
-                        , http-conduit  >= 1.4.1.2 && < 2.0.0
-                        , http-types    >= 0.6.11
-                        , bytestring    >= 0.9
-                        , mtl           >= 2.1
-                        , utf8-string   >= 0.3.7
-    extensions:         OverloadedStrings, TupleSections, RecordWildCards
+    Build-depends:        base                 >= 3       && < 5
+                        , text                 >= 0.11.0  && < 0.12
+                        , aeson                >= 0.6.1   && < 0.7
+                        , unordered-containers >= 0.1.4.6 && < 0.3
+                        , time                 >= 1.0.0   && < 1.5
+                        , http-conduit         >= 1.4.1.2 && < 2.0
+                        , http-types           >= 0.6.11  && < 0.9
+                        , bytestring           >= 0.9     && < 0.11
+                        , mtl                  >= 2.1     && < 2.2
+                        , utf8-string          >= 0.3.7   && < 0.4
+    extensions:         OverloadedStrings, TupleSections
