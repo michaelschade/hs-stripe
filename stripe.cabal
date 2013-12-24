@@ -1,5 +1,5 @@
 Name:                stripe
-Version:             0.3.1.1
+Version:             0.4.0.0
 Synopsis:            A Haskell implementation of the Stripe API.
 Description:         This is an implementation of the Stripe API as it is
                      documented at https://stripe.com/docs/api

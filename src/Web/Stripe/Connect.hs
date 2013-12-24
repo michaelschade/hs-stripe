@@ -6,7 +6,7 @@ module Web.Stripe.Connect
     , getAccessToken
     , createCustomerToken
 
-    , APIKey (..)
+    , SecretKey (..)
     , StripeConnectTokens (..)
     , Scope (..)
     , Landing (..)
@@ -33,7 +33,7 @@ import           Network.HTTP.Conduit  (Request (..), Response (..), httpLbs,
                                         parseUrl, urlEncodedBody, withManager)
 import           Network.HTTP.Types    (Query, Status (..), StdMethod (..),
                                         hAccept, renderQuery)
-import           Web.Stripe.Client     (APIKey (..), StripeRequest (..),
+import           Web.Stripe.Client     (SecretKey (..), StripeRequest (..),
                                         StripeT, query)
 import           Web.Stripe.Customer   (CustomerId (..))
 import           Web.Stripe.Token      (Token, tokRq)
@@ -92,15 +92,15 @@ refreshTokenQuery mScope token =
 
 
 -- HTTP ------------------------------------------------------------------------
--- TODO getAccessToken should get the APIKey from the StripeT monad.
-getAccessToken :: APIKey -> AuthCode -> IO (Maybe StripeConnectTokens)
+-- TODO getAccessToken should get the SecretKey from the StripeT monad.
+getAccessToken :: SecretKey -> AuthCode -> IO (Maybe StripeConnectTokens)
 getAccessToken key code = do
   req <- updateHeaders <$> parseUrl (B.unpack accessTokenURL)
   decode . responseBody <$> (withManager . httpLbs $ urlEncodedBody body req)
       where
         body              = optionalArgs $ accessTokenQuery Nothing code
         headers req       = json : auth : requestHeaders req
-        auth              = ("Authorization", encodeUtf8 . append "Bearer " $ unAPIKey key)
+        auth              = ("Authorization", encodeUtf8 . append "Bearer " $ unSecretKey key)
         json              = (hAccept, "application/json")
         updateHeaders req =
             req

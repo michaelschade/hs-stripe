@@ -5,7 +5,8 @@
 
 module Web.Stripe.Client
     ( StripeConfig(..)
-    , APIKey(..)
+    , SecretKey(..)
+    , StripeVersion(..)
     , StripeResponseCode(..)
     , StripeFailure(..)
     , StripeError(..)
@@ -51,13 +52,13 @@ import           Web.Stripe.Utils      (textToByteString)
 
 -- | Configuration for the 'StripeT' monad transformer.
 data StripeConfig = StripeConfig
-    { key     :: APIKey
-    , caFile  :: FilePath
-    , version :: StripeVersion
+    { stripeSecretKey :: SecretKey
+    , stripeCAFile    :: FilePath
+    , stripeVersion   :: StripeVersion
     } deriving Show
 
 -- | A key used when authenticating to the Stripe API.
-newtype APIKey = APIKey { unAPIKey :: T.Text } deriving Show
+newtype SecretKey = SecretKey { unSecretKey :: T.Text } deriving Show
 
 -- | This represents the possible successes that a connection to the Stripe
 --   API can encounter. For specificity, a success can be represented by other
@@ -173,10 +174,10 @@ runStripeT cfg m =
 -- Querying --
 --------------
 
--- | Provides a default 'StripeConfig'. Essentially, this inserts the 'APIKey', but
+-- | Provides a default 'StripeConfig'. Essentially, this inserts the 'SecretKey', but
 --   leaves other fields blank. This is especially relavent due to the current
 --   CA file check bug.
-defaultConfig  :: APIKey -> StripeConfig
+defaultConfig  :: SecretKey -> StripeConfig
 defaultConfig k = StripeConfig k "" V20110915d
 
 -- | The basic 'StripeRequest' environment upon which all other Stripe API requests
@@ -258,11 +259,11 @@ prepRq :: Monad m => StripeConfig -> StripeRequest -> Maybe (Request m)
 prepRq StripeConfig{..} StripeRequest{..} =
     flip fmap mReq $ \req -> applyBasicAuth k p $ (addBodyUa req)
     { queryString = renderQuery False qs
-    , requestHeaders = [ ("Stripe-Version", C8.pack . show $ version) ]
+    , requestHeaders = [ ("Stripe-Version", C8.pack . show $ stripeVersion) ]
     , method = renderStdMethod sMethod
     }
   where
-    k = textToByteString $ unAPIKey key
+    k = textToByteString $ unSecretKey stripeSecretKey
     p = textToByteString ""
     addBodyUa = urlEncodedBody sData . setUserAgent "hs-string/0.2 http-conduit"
     mReq = parseUrl . T.unpack $ T.concat [
