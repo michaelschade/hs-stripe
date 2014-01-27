@@ -1,5 +1,9 @@
 Name:                stripe
+<<<<<<< Updated upstream
 Version:             0.4.0.0
+=======
+Version:             0.5.0.0
+>>>>>>> Stashed changes
 Synopsis:            A Haskell implementation of the Stripe API.
 Description:         This is an implementation of the Stripe API as it is
                      documented at https:\/\/stripe.com\/docs\/api
@@ -38,6 +42,7 @@ Library
                         , unordered-containers >= 0.1.4.6 && < 0.3
                         , time                 >= 1.0.0   && < 1.5
                         , http-conduit         >= 1.4.1.2 && < 2.0
+                        , http-conduit         >= 2.0.0   && < 2.0.1
                         , http-types           >= 0.6.11  && < 0.9
                         , bytestring           >= 0.9     && < 0.11
                         , mtl                  >= 2.1     && < 2.2

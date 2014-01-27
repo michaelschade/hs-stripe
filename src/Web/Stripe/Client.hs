@@ -246,7 +246,7 @@ queryData req = query' req >>= \(code, ans) -> do
 query_ :: MonadIO m => StripeRequest -> StripeT m ()
 query_ req = query' req >> return ()
 
-setUserAgent :: C8.ByteString -> Request m -> Request m
+setUserAgent :: C8.ByteString -> Request -> Request
 setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeaders }
   where
     filteredHeaders = filter ((/= "User-Agent") . fst) $ requestHeaders req
@@ -255,7 +255,7 @@ setUserAgent ua req = req { requestHeaders = ("User-Agent", ua) : filteredHeader
 --   make an authenticated query to the Stripe server.
 --   _TODO there is lots of sloppy Text <-> String stuff here.. should fix
 
-prepRq :: Monad m => StripeConfig -> StripeRequest -> Maybe (Request m)
+prepRq :: StripeConfig -> StripeRequest -> Maybe Request
 prepRq StripeConfig{..} StripeRequest{..} =
     flip fmap mReq $ \req -> applyBasicAuth k p $ (addBodyUa req)
     { queryString = renderQuery False qs
