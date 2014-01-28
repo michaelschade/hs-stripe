@@ -17,7 +17,7 @@ import           Web.Stripe.Utils    (optionalArgs, showByteString,
 -- | Represents a credit card in the Stripe system.
 data Card = Card
     { cardType     :: T.Text
-    , cardCountry  :: T.Text
+    , cardCountry  :: Maybe T.Text
     , cardLastFour :: T.Text
     , cardExpMonth :: Int
     , cardExpYear  :: Int
