@@ -8,6 +8,7 @@ module Web.Stripe.Subscription
     , SubAtPeriodEnd(..)
     , updateSubRCard
     , updateSubToken
+    , updateSub
     , cancelSub
 
     {- Re-Export -}
