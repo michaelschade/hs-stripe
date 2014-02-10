@@ -83,12 +83,14 @@ accessTokenQuery mScope code =
     ]
 
 
+{-
 refreshTokenQuery :: Maybe Scope -> RefreshToken -> Query
 refreshTokenQuery mScope token =
     [ ("grant_type", Just "refresh_token")
     , ("scope", pack . show <$> mScope)
     , ("refresh_token", Just token)
     ]
+    -}
 
 
 -- HTTP ------------------------------------------------------------------------

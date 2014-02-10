@@ -33,7 +33,7 @@ import           Web.Stripe.Utils    (UTCTime (..), fromSeconds, optionalArgs,
                                       showByteString, textToByteString)
 
 import           Control.Applicative ((<$>), (<*>))
-import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import qualified Data.ByteString     as B
 import qualified Data.Text           as T
 
@@ -47,8 +47,8 @@ data Subscription = Subscription
     , subPlan        :: Plan
     , subStatus      :: SubStatus
     , subStart       :: UTCTime
-    , subTrialStart  :: UTCTime
-    , subTrialEnd    :: UTCTime
+    , subTrialStart  :: Maybe UTCTime
+    , subTrialEnd    :: Maybe UTCTime
     , subPeriodStart :: UTCTime -- ^ Current period start
     , subPeriodEnd   :: UTCTime -- ^ Current period end
     } deriving Show
@@ -132,12 +132,12 @@ toSubStatus s = case T.map toLower s of
 -- | Attempts to parse JSON into a 'Subscription'.
 instance FromJSON Subscription where
     parseJSON (Object o) = Subscription
-      <$> (CustomerId  <$> o .: "customer")
+      <$> (CustomerId  <$> o .:  "customer")
       <*> o .: "plan"
-      <*> (toSubStatus <$> o .: "status")
-      <*> (fromSeconds <$> o .: "start")
-      <*> (fromSeconds <$> o .: "trial_start")
-      <*> (fromSeconds <$> o .: "trial_end")
-      <*> (fromSeconds <$> o .: "current_period_start")
-      <*> (fromSeconds <$> o .: "current_period_end")
+      <*> (     toSubStatus <$> o .:  "status")
+      <*> (     fromSeconds <$> o .:  "start")
+      <*> (fmap fromSeconds <$> o .:? "trial_start")
+      <*> (fmap fromSeconds <$> o .:? "trial_end")
+      <*> (     fromSeconds <$> o .:  "current_period_start")
+      <*> (     fromSeconds <$> o .:  "current_period_end")
     parseJSON _ = mzero
