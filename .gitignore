@@ -3,3 +3,5 @@ dist_*/
 .DS_Store
 *.swp
 .hsenv
+/.cabal-sandbox/
+/cabal.sandbox.config
