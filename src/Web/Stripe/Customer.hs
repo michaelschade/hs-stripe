@@ -49,7 +49,7 @@ import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
 -- | Represents a customer in the Stripe system.
 data Customer = Customer
     { custId          :: CustomerId
-    , custEmail       :: Email
+    , custEmail       :: Maybe Email
     , custDescription :: Maybe Description
     , custLive        :: Bool
     , custCreated     :: UTCTime
@@ -173,7 +173,7 @@ customerRq pcs = baseSReq { sDestination = "customers":pcs }
 instance FromJSON Customer where
     parseJSON (Object o) = Customer
         <$> (CustomerId   <$> o .: "id")
-        <*> (Email        <$> o .: "email")
+        <*> (fmap . fmap) Email        (o .: "email")
         <*> (fmap . fmap) Description  (o .:? "description")
         <*> o .: "livemode"
         <*> (fromSeconds <$> o .: "created")
