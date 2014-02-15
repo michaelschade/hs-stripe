@@ -51,8 +51,8 @@ rCardKV rc = fd ++ optionalArgs md
         -- Optional
         md = [ ("card[cvc]",             textToByteString <$> rCardCVC           rc)
              , ("card[name]",            textToByteString <$> rCardFullName      rc)
-             , ("card[address_line_1]",  textToByteString <$> rCardAddrLineOne   rc)
-             , ("card[address_line_2]",  textToByteString <$> rCardAddrLineTwo   rc)
+             , ("card[address_line1]",  textToByteString <$> rCardAddrLineOne   rc)
+             , ("card[address_line2]",  textToByteString <$> rCardAddrLineTwo   rc)
              , ("card[address_zip]",     textToByteString <$> rCardAddrZip       rc)
              , ("card[address_state]",   textToByteString <$> rCardAddrState     rc)
              , ("card[address_country]", textToByteString <$> rCardAddrCountry   rc)
