@@ -33,6 +33,7 @@ data RequestCard = RequestCard
     , rCardFullName    :: Maybe T.Text
     , rCardAddrLineOne :: Maybe T.Text
     , rCardAddrLineTwo :: Maybe T.Text
+    , rCardCity        :: Maybe T.Text
     , rCardAddrZip     :: Maybe T.Text
     , rCardAddrState   :: Maybe T.Text
     , rCardAddrCountry :: Maybe T.Text
@@ -53,6 +54,7 @@ rCardKV rc = fd ++ optionalArgs md
              , ("card[name]",            textToByteString <$> rCardFullName      rc)
              , ("card[address_line1]",  textToByteString <$> rCardAddrLineOne   rc)
              , ("card[address_line2]",  textToByteString <$> rCardAddrLineTwo   rc)
+             , ("card[address_city]",    textToByteString <$> rCardCity   rc)
              , ("card[address_zip]",     textToByteString <$> rCardAddrZip       rc)
              , ("card[address_state]",   textToByteString <$> rCardAddrState     rc)
              , ("card[address_country]", textToByteString <$> rCardAddrCountry   rc)
