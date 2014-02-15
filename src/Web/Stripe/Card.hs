@@ -3,6 +3,8 @@
 module Web.Stripe.Card
     ( Card(..)
     , RequestCard(..)
+    , CardChecks(..)
+    , CardCheckResult(..)
     , rCardKV
     ) where
 
@@ -16,11 +18,12 @@ import           Web.Stripe.Utils    (optionalArgs, showByteString,
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
-    { cardType     :: T.Text
-    , cardCountry  :: Maybe T.Text
-    , cardLastFour :: T.Text
-    , cardExpMonth :: Int
-    , cardExpYear  :: Int
+    { cardType             :: T.Text
+    , cardCountry          :: Maybe T.Text
+    , cardLastFour         :: T.Text
+    , cardExpMonth         :: Int
+    , cardExpYear          :: Int
+    , cardChecks           :: CardChecks
     } deriving Show
 
 -- | Represents a credit car (with full details) that is used as input to the
@@ -33,10 +36,20 @@ data RequestCard = RequestCard
     , rCardFullName    :: Maybe T.Text
     , rCardAddrLineOne :: Maybe T.Text
     , rCardAddrLineTwo :: Maybe T.Text
+    , rCardCity        :: Maybe T.Text
     , rCardAddrZip     :: Maybe T.Text
     , rCardAddrState   :: Maybe T.Text
     , rCardAddrCountry :: Maybe T.Text
     } deriving Show
+
+data CardChecks = CardChecks
+    { checkCVC         :: CardCheckResult
+    , checkAddrLineOne :: CardCheckResult
+    , checkZip         :: CardCheckResult
+    } deriving Show
+
+data CardCheckResult = NotProvided | NotChecked | Passed | Failed
+    deriving (Show, Eq)
 
 -- | Turns a 'RequestCard' into a list of key-value pairs that can be submitted
 --   to the Stripe API in a query.
@@ -51,8 +64,9 @@ rCardKV rc = fd ++ optionalArgs md
         -- Optional
         md = [ ("card[cvc]",             textToByteString <$> rCardCVC           rc)
              , ("card[name]",            textToByteString <$> rCardFullName      rc)
-             , ("card[address_line_1]",  textToByteString <$> rCardAddrLineOne   rc)
-             , ("card[address_line_2]",  textToByteString <$> rCardAddrLineTwo   rc)
+             , ("card[address_line1]",  textToByteString <$> rCardAddrLineOne   rc)
+             , ("card[address_line2]",  textToByteString <$> rCardAddrLineTwo   rc)
+             , ("card[address_city]",    textToByteString <$> rCardCity   rc)
              , ("card[address_zip]",     textToByteString <$> rCardAddrZip       rc)
              , ("card[address_state]",   textToByteString <$> rCardAddrState     rc)
              , ("card[address_country]", textToByteString <$> rCardAddrCountry   rc)
@@ -70,4 +84,16 @@ instance FromJSON Card where
     <*> v .: "last4"
     <*> v .: "exp_month"
     <*> v .: "exp_year"
+    <*> (CardChecks
+      <$> v .: "cvc_check"
+      <*> v .: "address_line1_check"
+      <*> v .: "address_zip_check"
+    )
   parseJSON _ = mzero
+
+instance FromJSON CardCheckResult where
+  parseJSON Null = return NotProvided
+  parseJSON (String s)
+    | s == "unchecked" = return NotChecked
+    | s == "pass" = return Passed
+  parseJSON _ = return Failed
