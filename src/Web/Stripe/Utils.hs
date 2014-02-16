@@ -1,17 +1,21 @@
 module Web.Stripe.Utils
-    ( Amount(..)
+    ( -- common types
+      CustomerId(..)
+    , SubscriptionId(..)
+    , Amount(..)
     , Count(..)
     , Currency(..)
     , Description(..)
     , Offset(..)
     , optionalArgs
-    {- Re-Export -}
-    , UTCTime(..)
+    -- helper functions
     , fromSeconds
     , toSeconds
     , stringToByteString
     , textToByteString
     , showByteString
+    , module Export
+    {- Re-Export -}
     ) where
 
 import qualified Codec.Binary.UTF8.String as CodecUtf8
@@ -19,10 +23,13 @@ import           Control.Monad            (liftM)
 import qualified Data.ByteString          as B
 import           Data.Maybe               (mapMaybe)
 import qualified Data.Text                as T
-import           Data.Time.Clock          (UTCTime (..))
+import           Data.Time.Clock          as Export (UTCTime (..))
 import           Data.Time.Clock.POSIX    (posixSecondsToUTCTime,
                                            utcTimeToPOSIXSeconds)
 import           Data.Time.Format         ()
+
+import           Data.Aeson as Export     (withObject, FromJSON (..), Value (..), (.:), (.:?))
+import           Control.Applicative      as Export ((<$>), (<*>))
 
 showByteString :: Show a => a -> B.ByteString
 showByteString = stringToByteString . show
@@ -36,6 +43,12 @@ stringToByteString = B.pack . CodecUtf8.encode
 -----------------------
 -- Common Data Types --
 -----------------------
+--
+-- | Represents a 'Customer'\'s ID in the Stripe system.
+newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving (Show, Eq)
+
+newtype SubscriptionId = SubscriptionId { unSubscriptionId :: T.Text }
+                         deriving (Show, Eq)
 
 -- | Represents an amount in cents in the Stripe system.
 newtype Amount = Amount { unAmount :: Int } deriving (Show, Eq)

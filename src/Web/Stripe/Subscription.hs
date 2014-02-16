@@ -2,6 +2,7 @@
 
 module Web.Stripe.Subscription
     ( Subscription(..)
+    , SubscriptionId(..)
     , SubStatus(..)
     , SubProrate(..)
     , SubTrialEnd(..)
@@ -26,10 +27,10 @@ import           Web.Stripe.Card     (RequestCard, rCardKV)
 import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       StripeT (..), baseSReq, query, runStripeT)
 import           Web.Stripe.Coupon   (CpnId (..))
-import           Web.Stripe.Customer (CustomerId (..))
+import           Web.Stripe.Discount (Discount)
 import           Web.Stripe.Plan     (Plan, PlanId (..))
 import           Web.Stripe.Token    (TokenId (..))
-import           Web.Stripe.Utils    (UTCTime (..), fromSeconds, optionalArgs,
+import           Web.Stripe.Utils    (SubscriptionId(..), CustomerId(..), UTCTime (..), fromSeconds, optionalArgs,
                                       showByteString, textToByteString)
 
 import           Control.Applicative ((<$>), (<*>))
@@ -43,7 +44,8 @@ import qualified Data.Text           as T
 
 -- | Represents a subscription in the Stripe API.
 data Subscription = Subscription
-    { subCustomerId  :: CustomerId
+    { subId          :: SubscriptionId
+    , subCustomerId  :: CustomerId
     , subPlan        :: Plan
     , subStatus      :: SubStatus
     , subStart       :: UTCTime
@@ -51,6 +53,7 @@ data Subscription = Subscription
     , subTrialEnd    :: Maybe UTCTime
     , subPeriodStart :: UTCTime -- ^ Current period start
     , subPeriodEnd   :: UTCTime -- ^ Current period end
+    , subDiscount    :: Maybe Discount
     } deriving Show
 
 -- | Describes the various stages that a
@@ -132,7 +135,8 @@ toSubStatus s = case T.map toLower s of
 -- | Attempts to parse JSON into a 'Subscription'.
 instance FromJSON Subscription where
     parseJSON (Object o) = Subscription
-      <$> (CustomerId  <$> o .:  "customer")
+      <$> (SubscriptionId <$> o .: "id")
+      <*> (CustomerId     <$> o .: "customer")
       <*> o .: "plan"
       <*> (     toSubStatus <$> o .:  "status")
       <*> (     fromSeconds <$> o .:  "start")
@@ -140,4 +144,5 @@ instance FromJSON Subscription where
       <*> (fmap fromSeconds <$> o .:? "trial_end")
       <*> (     fromSeconds <$> o .:  "current_period_start")
       <*> (     fromSeconds <$> o .:  "current_period_end")
+      <*> o .:? "discount"
     parseJSON _ = mzero
