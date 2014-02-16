@@ -8,7 +8,7 @@ module Web.Stripe.Card
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (mzero)
-import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import qualified Data.ByteString     as B
 import qualified Data.Text           as T
 import           Web.Stripe.Utils    (optionalArgs, showByteString,
@@ -65,9 +65,9 @@ rCardKV rc = fd ++ optionalArgs md
 -- | Attempts to parse JSON into a credit 'Card'.
 instance FromJSON Card where
   parseJSON (Object v) = Card
-    <$> v .: "type"
-    <*> v .: "country"
-    <*> v .: "last4"
-    <*> v .: "exp_month"
-    <*> v .: "exp_year"
+    <$> v .:  "type"
+    <*> v .:? "country"
+    <*> v .:  "last4"
+    <*> v .:  "exp_month"
+    <*> v .:  "exp_year"
   parseJSON _ = mzero
