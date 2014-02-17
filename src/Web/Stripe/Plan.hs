@@ -130,10 +130,10 @@ toPlanInterval p = case T.map toLower p of
 -- | Attempts to parse JSON into a 'Plan'.
 instance FromJSON Plan where
     parseJSON (Object o) = Plan
-        <$> (PlanId         <$> o .: "id")
-        <*> (Amount         <$> o .: "amount")
-        <*> (toPlanInterval <$> o .: "interval")
-        <*> o .: "name"
-        <*> (Currency       <$> o .: "currency")
-        <*> ((PlanTrialDays <$>) <$> o .:? "trial_period_days")
+        <$> (PlanId             <$> o .:  "id")
+        <*> (Amount             <$> o .:  "amount")
+        <*> (toPlanInterval     <$> o .:  "interval")
+        <*>                         o .:  "name"
+        <*> (Currency           <$> o .:  "currency")
+        <*> (fmap PlanTrialDays <$> o .:? "trial_period_days")
     parseJSON _ = mzero

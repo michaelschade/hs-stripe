@@ -172,10 +172,10 @@ customerRq pcs = baseSReq { sDestination = "customers":pcs }
 -- | Attempts to parse JSON into a 'Customer'.
 instance FromJSON Customer where
     parseJSON (Object o) = Customer
-        <$> (CustomerId   <$> o .: "id")
-        <*> (fmap . fmap) Email        (o .: "email")
-        <*> (fmap . fmap) Description  (o .:? "description")
-        <*> o .: "livemode"
-        <*> (fromSeconds <$> o .: "created")
-        <*> o .:? "active_card"
+        <$> (CustomerId       <$> o .:  "id")
+        <*> (fmap Email       <$> o .:? "email")
+        <*> (fmap Description <$> o .:? "description")
+        <*>                       o .:  "livemode"
+        <*> (fromSeconds      <$> o .:  "created")
+        <*>                       o .:? "active_card"
     parseJSON _ = mzero

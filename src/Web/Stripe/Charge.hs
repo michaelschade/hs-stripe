@@ -167,11 +167,11 @@ chargeRq pcs = baseSReq { sDestination = "charges":pcs }
 -- | Attempts to parse JSON into a 'Charge'.
 instance FromJSON Charge where
     parseJSON (Object v) = Charge
-        <$> (ChargeId <$> v .: "id")
-        <*> (fromSeconds       <$> v .: "created")
-        <*> ((Description <$>) <$> v .:? "description")
-        <*> (Currency          <$> v .: "currency")
-        <*> (Amount            <$> v .: "amount")
+        <$> (ChargeId         <$> v .:  "id")
+        <*> (fromSeconds      <$> v .:  "created")
+        <*> (fmap Description <$> v .:? "description")
+        <*> (Currency         <$> v .:  "currency")
+        <*> (Amount           <$> v .:  "amount")
         <*> v .: "livemode"
         <*> v .: "paid"
         <*> v .: "refunded"
