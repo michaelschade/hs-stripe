@@ -10,7 +10,7 @@ module Web.Stripe.Card
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Monad       (mzero)
-import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import qualified Data.ByteString     as B
 import qualified Data.Text           as T
 import           Web.Stripe.Utils    (optionalArgs, showByteString,
@@ -18,12 +18,12 @@ import           Web.Stripe.Utils    (optionalArgs, showByteString,
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
-    { cardType             :: T.Text
-    , cardCountry          :: Maybe T.Text
-    , cardLastFour         :: T.Text
-    , cardExpMonth         :: Int
-    , cardExpYear          :: Int
-    , cardChecks           :: CardChecks
+    { cardType     :: T.Text
+    , cardCountry  :: Maybe T.Text
+    , cardLastFour :: T.Text
+    , cardExpMonth :: Int
+    , cardExpYear  :: Int
+    , cardChecks   :: CardChecks
     } deriving Show
 
 -- | Represents a credit car (with full details) that is used as input to the
@@ -64,8 +64,8 @@ rCardKV rc = fd ++ optionalArgs md
         -- Optional
         md = [ ("card[cvc]",             textToByteString <$> rCardCVC           rc)
              , ("card[name]",            textToByteString <$> rCardFullName      rc)
-             , ("card[address_line1]",  textToByteString <$> rCardAddrLineOne   rc)
-             , ("card[address_line2]",  textToByteString <$> rCardAddrLineTwo   rc)
+             , ("card[address_line1]",   textToByteString <$> rCardAddrLineOne   rc)
+             , ("card[address_line2]",   textToByteString <$> rCardAddrLineTwo   rc)
              , ("card[address_city]",    textToByteString <$> rCardCity   rc)
              , ("card[address_zip]",     textToByteString <$> rCardAddrZip       rc)
              , ("card[address_state]",   textToByteString <$> rCardAddrState     rc)
@@ -79,11 +79,11 @@ rCardKV rc = fd ++ optionalArgs md
 -- | Attempts to parse JSON into a credit 'Card'.
 instance FromJSON Card where
   parseJSON (Object v) = Card
-    <$> v .: "type"
-    <*> v .: "country"
-    <*> v .: "last4"
-    <*> v .: "exp_month"
-    <*> v .: "exp_year"
+    <$> v .:  "type"
+    <*> v .:? "country"
+    <*> v .:  "last4"
+    <*> v .:  "exp_month"
+    <*> v .:  "exp_year"
     <*> (CardChecks
       <$> v .: "cvc_check"
       <*> v .: "address_line1_check"
