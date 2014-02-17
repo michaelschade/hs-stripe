@@ -20,13 +20,14 @@ Source-Repository   head
 
 Library
   -- Modules exported by the library.
-    ghc-options:        -Wall -fwarn-tabs
+    ghc-options:        -Wall -fwarn-tabs -Werror
     Hs-Source-Dirs:     src
     Exposed-modules:      Web.Stripe.Card
                         , Web.Stripe.Charge
                         , Web.Stripe.Client
                         , Web.Stripe.Connect
                         , Web.Stripe.Coupon
+                        , Web.Stripe.Discount
                         , Web.Stripe.Customer
                         , Web.Stripe.Plan
                         , Web.Stripe.Subscription

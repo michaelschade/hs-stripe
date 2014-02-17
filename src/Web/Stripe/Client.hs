@@ -226,7 +226,9 @@ query' sReq = do
 -- >    query baseSReq { sDestination = ["charges"] }
 query :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
 query req = query' req >>= \(code, ans) ->
-    either (throwError . strMsg . ("JSON parse error: " ++)) (return . (code, )) $ eitherDecode' ans
+    either (throwError . strMsg .
+               (\msg -> "JSON parse error: " ++ msg ++ ". json: " ++ show ans))
+           (return . (code, )) $ eitherDecode' ans
 
 -- | same as `query` but pulls out the value inside a data field and returns that
 queryData :: (MonadIO m, FromJSON a) => StripeRequest -> StripeT m (StripeResponseCode, a)
