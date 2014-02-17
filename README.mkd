@@ -21,15 +21,15 @@ Example Usage
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
 
-import Web.Stripe.Charge  ( Charge(..), Amount(..), Count(..), Currency(..)
-                          , Offset(..), getCharges
-                          )
-import Web.Stripe.Client  ( APIKey(..), StripeConfig, defaultConfig, runStripeT )
+import           Web.Stripe.Charge (Amount (..), Charge (..), Count (..),
+                                    Currency (..), Offset (..), getCharges)
+import           Web.Stripe.Client (SecretKey (..), StripeConfig, defaultConfig,
+                                    runStripeT)
 
 -- The secret key below is used on the live Stripe API documentation. In
 -- practice, you should always store your secret key securely.
 conf :: StripeConfig
-conf  = defaultConfig $ APIKey "sk_test_mkGsLqEW6SLnZa487HYfJVLf"
+conf  = defaultConfig $ SecretKey "sk_test_mkGsLqEW6SLnZa487HYfJVLf"
 
 main :: IO ()
 main  = do
