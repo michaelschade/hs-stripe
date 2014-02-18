@@ -6,7 +6,8 @@ Description:         This is an implementation of the Stripe API as it is
 License:             BSD3
 License-file:        LICENSE
 Author:              Spearhead Development, L.L.C.
-Maintainer:          Michael Schade <m@mschade.me>
+Maintainer:          Michael Schade <m@mschade.me>,
+                     Luke Hoersten <luke@hoersten.org>
 Copyright:           (c) 2011 Spearhead Development, L.L.C.
 Homepage:            https://github.com/michaelschade/hs-stripe
 Category:            Web
