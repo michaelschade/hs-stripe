@@ -138,7 +138,7 @@ data StripeRequest = StripeRequest
 -- | Stripe Version
 -- Represents Stripe API Versions
 data StripeVersion = V20110915d
-                   | OtherVersion String -- * "Format: 2011-09-15-d"
+                   | OtherVersion String -- ^ "Format: 2011-09-15-d"
 
 instance Show StripeVersion where
     show V20110915d = "2011-09-15-d"
