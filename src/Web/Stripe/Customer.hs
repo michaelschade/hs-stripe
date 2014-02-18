@@ -36,9 +36,10 @@ import           Web.Stripe.Client   (StdMethod (..), StripeConfig (..),
                                       StripeRequest (..), StripeT (..),
                                       baseSReq, query, queryData, runStripeT)
 import           Web.Stripe.Coupon   (CpnId (..))
+import           Web.Stripe.Discount (Discount)
 import           Web.Stripe.Plan     (PlanId (..))
 import           Web.Stripe.Token    (TokenId (..))
-import           Web.Stripe.Utils    (Count (..), Description (..), Offset (..),
+import           Web.Stripe.Utils    (CustomerId(..), Count (..), Description (..), Offset (..),
                                       UTCTime (..), fromSeconds, optionalArgs,
                                       showByteString, textToByteString)
 
@@ -54,10 +55,8 @@ data Customer = Customer
     , custLive        :: Bool
     , custCreated     :: UTCTime
     , custActiveCard  :: Maybe Card
+    , custDiscount    :: Maybe Discount
     } deriving Show
-
--- | Represents a 'Customer'\'s ID in the Stripe system.
-newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving (Show, Eq)
 
 -- | Represents a standard email address.
 newtype Email = Email { unEmail :: T.Text } deriving (Show, Eq)
@@ -178,4 +177,5 @@ instance FromJSON Customer where
         <*>                       o .:  "livemode"
         <*> (fromSeconds      <$> o .:  "created")
         <*>                       o .:? "active_card"
+        <*>                       o .:? "discount"
     parseJSON _ = mzero
