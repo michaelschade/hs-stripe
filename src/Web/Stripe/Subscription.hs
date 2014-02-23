@@ -7,6 +7,7 @@ module Web.Stripe.Subscription
     , SubProrate(..)
     , SubTrialEnd(..)
     , SubAtPeriodEnd(..)
+    , createSub
     , updateSubRCard
     , updateSubToken
     , updateSub
@@ -89,6 +90,22 @@ updateSubToken :: MonadIO m => TokenId -> CustomerId -> PlanId -> Maybe CpnId
                -> Maybe SubProrate -> Maybe SubTrialEnd
                -> StripeT m Subscription
 updateSubToken (TokenId tid) = updateSub [("token", textToByteString tid)]
+
+
+-- | Create a new 'Subscription'. Limitations: does not yet support passing
+--   a card,  quantity, or application fee
+
+createSub :: MonadIO m => CustomerId -> PlanId -> Maybe CpnId
+          -> Maybe SubTrialEnd
+          -> StripeT m Subscription
+          
+createSub cid pid mcpnid mste =
+    snd `liftM` query (subRq cid []) { sMethod = POST, sData = fdata }
+    where
+        fdata = ("plan", textToByteString $ unPlanId pid) : optionalArgs odata
+        odata = [ ("coupon",    textToByteString . unCpnId     <$> mcpnid)
+                , ("trial_end", showByteString . unSubTrialEnd <$> mste)
+                ]
 
 -- | Internal convenience function to update a 'Subscription'.
 updateSub :: MonadIO m => [(B.ByteString, B.ByteString)] -> CustomerId -> PlanId
