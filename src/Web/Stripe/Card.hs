@@ -18,12 +18,13 @@ import           Web.Stripe.Utils    (optionalArgs, showByteString,
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
-    { cardType     :: T.Text
-    , cardCountry  :: Maybe T.Text
-    , cardLastFour :: T.Text
-    , cardExpMonth :: Int
-    , cardExpYear  :: Int
-    , cardChecks   :: CardChecks
+    { cardType        :: T.Text
+    , cardCountry     :: Maybe T.Text
+    , cardLastFour    :: T.Text
+    , cardExpMonth    :: Int
+    , cardExpYear     :: Int
+    , cardFingerprint :: T.Text
+    , cardChecks      :: CardChecks
     } deriving Show
 
 -- | Represents a credit car (with full details) that is used as input to the
@@ -84,6 +85,7 @@ instance FromJSON Card where
     <*> v .:  "last4"
     <*> v .:  "exp_month"
     <*> v .:  "exp_year"
+    <*> v .:  "fingerprint"
     <*> (CardChecks
       <$> v .: "cvc_check"
       <*> v .: "address_line1_check"
