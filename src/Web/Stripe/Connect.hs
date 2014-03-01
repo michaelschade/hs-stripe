@@ -41,9 +41,9 @@ import           Web.Stripe.Utils      (optionalArgs, textToByteString)
 
 
 type URL = ByteString
-type AccessToken = ByteString
-type RefreshToken = ByteString
-type UserId = ByteString
+type AccessToken = Text
+type RefreshToken = Text
+type UserId = Text
 type ClientId = ByteString
 type AuthCode = ByteString
 
