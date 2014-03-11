@@ -2,6 +2,7 @@
 
 module Web.Stripe.Plan
     ( Plan(..)
+    , amount
     , PlanInterval(..)
     , PlanId(..)
     , PlanTrialDays(..)
@@ -61,13 +62,16 @@ newtype PlanId = PlanId { unPlanId :: T.Text } deriving (Show, Eq)
 --   before the customer is billed.
 newtype PlanTrialDays = PlanTrialDays { unPlanTrialDays :: Int } deriving (Show, Eq)
 
+amount :: Plan -> Int
+amount plan = unAmount $ planAmount plan
+
 -- | Creates a 'Plan' in the Stripe system.
 createPlan :: MonadIO m => Plan -> StripeT m ()
 createPlan p = query_ (planRq []) { sMethod = POST, sData = fdata }
     where
         fdata   = pdata ++ optionalArgs odata
         pdata   = [ ("id", textToByteString . unPlanId $ planId p)
-                  , ("amount",   showByteString . unAmount  $ planAmount p)
+                  , ("amount",   showByteString $ amount p)
                   , ("interval", textToByteString . fromPlanInterval $ planInterval p)
                   , ("name",     textToByteString $ planName p)
                   , ("currency", textToByteString . unCurrency $ planCurrency p)

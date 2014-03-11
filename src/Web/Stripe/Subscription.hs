@@ -7,9 +7,13 @@ module Web.Stripe.Subscription
     , SubProrate(..)
     , SubTrialEnd(..)
     , SubAtPeriodEnd(..)
+    , SubscriptionList(..)
     , createSub
+    , getSubscription
+    , getSubscriptions
     , updateSubRCard
     , updateSubToken
+    , updateSubscription
     , updateSub
     , cancelSub
 
@@ -35,7 +39,7 @@ import           Web.Stripe.Utils    (SubscriptionId(..), CustomerId(..), UTCTim
                                       showByteString, textToByteString)
 
 import           Control.Applicative ((<$>), (<*>))
-import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
+import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?), withObject)
 import qualified Data.ByteString     as B
 import qualified Data.Text           as T
 
@@ -74,6 +78,11 @@ newtype SubTrialEnd = SubTrialEnd { unSubTrialEnd :: Int } deriving (Show, Eq)
 newtype SubAtPeriodEnd = SubAtPeriodEnd { unSubAtPeriodEnd :: Bool }
     deriving (Show, Eq)
 
+data SubscriptionList = SubscriptionList
+   { subListCount :: Int
+   , subListData :: [Subscription]
+   }
+
 -- | Update the subscription associated with a 'Customer', identified by
 --   'CustomerId', in the Stripe system.
 --
@@ -94,11 +103,9 @@ updateSubToken (TokenId tid) = updateSub [("token", textToByteString tid)]
 
 -- | Create a new 'Subscription'. Limitations: does not yet support passing
 --   a card,  quantity, or application fee
-
 createSub :: MonadIO m => CustomerId -> PlanId -> Maybe CpnId
           -> Maybe SubTrialEnd
           -> StripeT m Subscription
-          
 createSub cid pid mcpnid mste =
     snd `liftM` query (subRq cid []) { sMethod = POST, sData = fdata }
     where
@@ -107,10 +114,25 @@ createSub cid pid mcpnid mste =
                 , ("trial_end", showByteString . unSubTrialEnd <$> mste)
                 ]
 
+getSubscription :: MonadIO m => CustomerId -> SubscriptionId -> StripeT m Subscription
+getSubscription cid sid = snd `liftM` query (subsRq cid [unSubscriptionId sid]) { sMethod = GET }
+
+getSubscriptions :: MonadIO m => CustomerId -> StripeT m SubscriptionList
+getSubscriptions cid = snd `liftM` query (subsRq cid []) { sMethod = GET }
+
+-- | Update a 'Subscription'
+updateSubscription
+    :: MonadIO m => CustomerId -> PlanId
+    -> Maybe CpnId -> Maybe SubProrate -> Maybe SubTrialEnd
+    -> StripeT m Subscription
+updateSubscription = updateSub []
+
 -- | Internal convenience function to update a 'Subscription'.
-updateSub :: MonadIO m => [(B.ByteString, B.ByteString)] -> CustomerId -> PlanId
-          -> Maybe CpnId -> Maybe SubProrate -> Maybe SubTrialEnd
-          -> StripeT m Subscription
+-- Try using 'updateSubscription', 'updateSubToken', or 'updateSubRCard'
+updateSub
+    :: MonadIO m => [(B.ByteString, B.ByteString)] -> CustomerId -> PlanId
+    -> Maybe CpnId -> Maybe SubProrate -> Maybe SubTrialEnd
+    -> StripeT m Subscription
 updateSub sdata cid pid mcpnid mspr mste =
     snd `liftM` query (subRq cid []) { sMethod = POST, sData = fdata }
     where
@@ -133,6 +155,10 @@ cancelSub cid mspe = snd `liftM`
 subRq :: CustomerId -> [T.Text] -> StripeRequest
 subRq (CustomerId cid) pcs =
     baseSReq { sDestination = "customers":cid:"subscription":pcs }
+
+subsRq :: CustomerId -> [T.Text] -> StripeRequest
+subsRq (CustomerId cid) pcs =
+    baseSReq { sDestination = "customers":cid:"subscriptions":pcs }
 
 ------------------
 -- JSON Parsing --
@@ -163,3 +189,8 @@ instance FromJSON Subscription where
       <*> (     fromSeconds <$> o .:  "current_period_end")
       <*> o .:? "discount"
     parseJSON _ = mzero
+
+instance FromJSON SubscriptionList where
+    parseJSON = withObject "SubscriptionList" $ \o -> SubscriptionList
+      <$> o .: "count"
+      <*> o .: "data"
