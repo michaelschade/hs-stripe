@@ -7,6 +7,7 @@ module Web.Stripe.Coupon
     , CpnPercentOff(..)
     , CpnMaxRedeems(..)
     , CpnRedeemBy(..)
+    , applyCoupon
     , createCoupon
     , getCoupon
     , getCoupons
@@ -35,6 +36,7 @@ import           Web.Stripe.Client   (StripeConfig (..), StripeRequest (..),
                                       query_, runStripeT)
 import           Web.Stripe.Utils    (Count (..), Offset (..), optionalArgs,
                                       showByteString, textToByteString)
+import           Web.Stripe.Plan     (Plan, amount)
 
 ----------------
 -- Data Types --
@@ -71,6 +73,15 @@ newtype CpnMaxRedeems = CpnMaxRedeems { unCpnMaxRedeems :: Int } deriving (Show,
 -- | UTC timestamp specifying the last time at which the coupon can be
 --   redeemed.
 newtype CpnRedeemBy = CpnRedeemBy { unCpnRedeemBy :: Int } deriving (Show, Eq)
+
+
+applyCoupon :: Maybe Coupon -> Plan -> Int
+applyCoupon mCoupon plan =
+    (100 - couponOff mCoupon) * amount plan `div` 100
+  where
+    couponOff :: Maybe Coupon -> Int
+    couponOff = maybe 0 (unCpnPercentOff . cpnPercentOff)
+
 
 -- | Creates a 'Coupon' in the Stripe system.
 createCoupon
