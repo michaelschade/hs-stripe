@@ -18,7 +18,8 @@ import           Web.Stripe.Utils    (optionalArgs, showByteString,
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
-    { cardType        :: T.Text
+    { cardId          :: T.Text
+    , cardType        :: T.Text
     , cardCountry     :: Maybe T.Text
     , cardLastFour    :: T.Text
     , cardExpMonth    :: Int
@@ -80,7 +81,8 @@ rCardKV rc = fd ++ optionalArgs md
 -- | Attempts to parse JSON into a credit 'Card'.
 instance FromJSON Card where
   parseJSON (Object v) = Card
-    <$> v .:  "type"
+    <$> v .:  "id"
+    <*> v .:  "type"
     <*> v .:? "country"
     <*> v .:  "last4"
     <*> v .:  "exp_month"
