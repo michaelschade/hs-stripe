@@ -6,15 +6,19 @@ module Web.Stripe.Card
     , CardChecks(..)
     , CardCheckResult(..)
     , rCardKV
+    , deleteCard
     ) where
 
 import           Control.Applicative ((<$>), (<*>))
-import           Control.Monad       (mzero)
+import           Control.Monad       (mzero, liftM)
+import           Control.Monad.Error (MonadIO)
 import           Data.Aeson          (FromJSON (..), Value (..), (.:), (.:?))
 import qualified Data.ByteString     as B
 import qualified Data.Text           as T
+import           Data.Text    (Text)
 import           Web.Stripe.Utils    (optionalArgs, showByteString,
-                                      textToByteString)
+                                      textToByteString, CustomerId(..), CardId(..))
+import           Web.Stripe.Client
 
 -- | Represents a credit card in the Stripe system.
 data Card = Card
@@ -101,3 +105,14 @@ instance FromJSON CardCheckResult where
     | s == "unchecked" = return NotChecked
     | s == "pass" = return Passed
   parseJSON _ = return Failed
+
+delCardReq :: Text -> Text -> StripeRequest
+delCardReq custid cardid = 
+    baseSReq { sDestination = "customers":custid:"cards":cardid:[] }
+
+deleteCard :: MonadIO m => CustomerId -> CardId -> StripeT m Bool
+deleteCard (CustomerId cid) (CardId cardid) =
+    snd `liftM` query (delCardReq cid cardid) { sMethod = DELETE, sData = [] }
+
+
+
