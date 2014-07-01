@@ -25,6 +25,7 @@ module Web.Stripe.Client
     , StdMethod(..)
     ) where
 
+import           Control.Applicative
 import           Control.Arrow         ((***))
 import           Control.Exception     as EX
 import           Control.Monad         (MonadPlus, join, liftM, mzero)
@@ -159,6 +160,8 @@ newtype StripeT m a = StripeT
     } deriving  ( Functor, Monad, MonadIO, MonadPlus
                 , MonadError StripeFailure
                 , MonadState StripeConfig
+                , Alternative
+                , Applicative
                 )
 
 -- | Runs the 'StripeT' monad transformer with a given 'StripeConfig'. This will

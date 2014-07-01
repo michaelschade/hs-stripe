@@ -1,6 +1,7 @@
 module Web.Stripe.Utils
     ( -- common types
       CustomerId(..)
+    , CardId(..)
     , SubscriptionId(..)
     , Amount(..)
     , Count(..)
@@ -46,6 +47,8 @@ stringToByteString = B.pack . CodecUtf8.encode
 --
 -- | Represents a 'Customer'\'s ID in the Stripe system.
 newtype CustomerId = CustomerId { unCustomerId :: T.Text } deriving (Show, Eq)
+
+data CardId = CardId { unCardId :: T.Text } deriving (Show, Eq)
 
 newtype SubscriptionId = SubscriptionId { unSubscriptionId :: T.Text }
                          deriving (Show, Eq)
