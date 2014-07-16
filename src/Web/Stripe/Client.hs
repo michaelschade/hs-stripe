@@ -32,7 +32,7 @@ import           Control.Monad         (MonadPlus, join, liftM, mzero)
 import           Control.Monad.Error   (Error, ErrorT, MonadError, MonadIO,
                                         noMsg, runErrorT, strMsg, throwError)
 import           Control.Monad.State   (MonadState, StateT, get, runStateT)
-import           Control.Monad.Trans   (liftIO)
+import           Control.Monad.Trans   (MonadTrans, lift, liftIO)
 import           Data.Aeson            (FromJSON (..), Value (..), decode',
                                         eitherDecode', (.:), (.:?))
 import           Data.Aeson.Types      (parseMaybe)
@@ -163,6 +163,9 @@ newtype StripeT m a = StripeT
                 , Alternative
                 , Applicative
                 )
+
+instance MonadTrans StripeT where
+  lift = StripeT . lift . lift
 
 -- | Runs the 'StripeT' monad transformer with a given 'StripeConfig'. This will
 --   handle all of the authorization dance steps necessary to utilize the
