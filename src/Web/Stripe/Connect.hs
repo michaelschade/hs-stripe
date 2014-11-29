@@ -12,6 +12,7 @@ module Web.Stripe.Connect
     , Landing (..)
     , AuthCode
     , AccessToken
+    , PublishableKey
     , RefreshToken
     , UserId
     , ClientId
@@ -46,15 +47,17 @@ type RefreshToken = Text
 type UserId = Text
 type ClientId = ByteString
 type AuthCode = ByteString
+type PublishableKey = Text
 
 newtype StripeConnectException = StripeConnectException String deriving (Show, Eq, Typeable)
 
 data Scope = ReadOnly | ReadWrite deriving Eq
 data Landing = Login | Register deriving Eq
 data StripeConnectTokens = StripeConnectTokens
-    { scAccessToken  :: AccessToken
-    , scRefreshToken :: RefreshToken
-    , scUserId       :: UserId
+    { scAccessToken    :: AccessToken
+    , scRefreshToken   :: RefreshToken
+    , scUserId         :: UserId
+    , scPublishableKey :: PublishableKey
     } deriving Show
 
 
@@ -132,6 +135,7 @@ instance FromJSON StripeConnectTokens where
         <$> o .: "access_token"
         <*> o .: "refresh_token"
         <*> o .: "stripe_user_id"
+        <*> o .: "stripe_publishable_key"
     parseJSON _ = mzero
 
 
