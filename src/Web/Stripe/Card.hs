@@ -28,7 +28,7 @@ data Card = Card
     , cardLastFour    :: T.Text
     , cardExpMonth    :: Int
     , cardExpYear     :: Int
-    , cardFingerprint :: T.Text
+    , cardFingerprint :: Maybe T.Text
     , cardChecks      :: CardChecks
     } deriving Show
 
@@ -91,7 +91,7 @@ instance FromJSON Card where
     <*> v .:  "last4"
     <*> v .:  "exp_month"
     <*> v .:  "exp_year"
-    <*> v .:  "fingerprint"
+    <*> v .:?  "fingerprint"
     <*> (CardChecks
       <$> v .: "cvc_check"
       <*> v .: "address_line1_check"
