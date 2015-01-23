@@ -98,7 +98,7 @@ updateSubRCard  = updateSub . rCardKV
 updateSubToken :: MonadIO m => TokenId -> CustomerId -> PlanId -> Maybe CpnId
                -> Maybe SubProrate -> Maybe SubTrialEnd
                -> StripeT m Subscription
-updateSubToken (TokenId tid) = updateSub [("token", textToByteString tid)]
+updateSubToken (TokenId tid) = updateSub [("card", textToByteString tid)]
 
 
 -- | Create a new 'Subscription'. Limitations: does not yet support passing
