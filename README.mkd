@@ -1,12 +1,18 @@
-This is an unofficial Haskell implementation of the [Stripe API][sapi].
+DEPRECATED
+==========
 
-**Note** that this has worked in my tests, but I have not used it in production
-yet. Try it thoroughly and let me know if you
-[find any bugs](https://github.com/michaelschade/hs-stripe/issues) or
-[have any improvements](http://help.github.com/send-pull-requests/).
+This library isn't being maintained any longer. [There's a much better
+implementation out there now by dmjio](https://github.com/dmjio/stripe). You'll
+[find the maintained library on Hackage as
+stripe-haskell](https://hackage.haskell.org/package/stripe-haskell).
+
+Historical info
+===============
+
+If you're still using this library or are curious about how it worked, read on!
 
 Installation
-============
+------------
 
 Installation is simple. If you have [cabal](http://www.haskell.org/cabal/)
 installed, just run:
@@ -16,7 +22,7 @@ installed, just run:
 and you'll be on your way!
 
 Example Usage
-=============
+-------------
 
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
@@ -46,12 +52,12 @@ Which produces the output along the lines of:
 `[(842,"usd"),(2048,"usd"),(1010,"usd"),(4096,"usd"),(4200,"usd")]`.
 
 Limitations
-===========
+-----------
 
 * This package currently does not implement Stripe invoices.
 
 Help
-====
+----
 
 First, consult the Haddock and [Stripe API][sapi] docs to be certain you're
 using the API correctly. It's a good idea to
@@ -65,14 +71,14 @@ implementation of the API, please submit an issue here. Better yet, submit
 a pull request with a proposed solution!
 
 Contributors
-============
+------------
 
 * [Michael Schade](https://twitter.com/sch)
 * [Luke Hoersten](https://twitter.com/LukeHoersten)
 * [Max Cantor](https://twitter.com/maxcan)
 
 License
-=======
+-------
 
 We like the MIT license. See `LICENSE`.
 
